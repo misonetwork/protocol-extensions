@@ -1,0 +1,11 @@
+[package]
+name = "per_track"
+edition = "2024"
+license = "Apache 2.0"
+authors = ["Miso Labs, Inc. (build@miso.network)"]
+
+# A per-track parallel array. Construction reads `Release` to size/validate the
+# array against the tracklist, so alignment is an invariant of the type rather
+# than a rule each extension must remember — hence the dependency on miso core.
+[dependencies]
+miso = { local = "../../../miso-protocol/move" }

@@ -1,0 +1,118 @@
+// Copyright (c) Miso Labs, Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+#[test_only]
+module composition_credits::credits_tests;
+
+use composition_credits::composition_party_role as cpr;
+use composition_credits::composition_credits as credits;
+use miso::composition::{Self, Composition, CompositionAdminCap};
+use miso::test_helpers::CompositionShare;
+use partyos::credit;
+use partyos::party::{Self, Party, PartyAdminCap};
+use std::unit_test::{assert_eq, destroy};
+use sui::test_scenario;
+
+const ARTIST: address = @0xA1;
+
+fun mk_composition(
+    ctx: &mut TxContext,
+): (Composition<CompositionShare>, CompositionAdminCap<CompositionShare>) {
+    composition::new_for_testing(b"Song".to_string(), 1500, ctx)
+}
+
+fun mk_party(name: vector<u8>, ctx: &mut TxContext): (Party, PartyAdminCap) {
+    party::new(party::new_individual_kind(), name.to_string(), ctx)
+}
+
+#[test]
+fun add_credit_attaches_and_reads_back() {
+    let mut ts = test_scenario::begin(ARTIST);
+    let (mut comp, cap) = mk_composition(ts.ctx());
+    assert!(!credits::has_credits(&comp));
+
+    let (p1, p1c) = mk_party(b"Alice", ts.ctx());
+    credits::add_credit(
+        &mut comp,
+        &cap,
+        &p1,
+        credit::new(b"Alice".to_string(), vector[cpr::new_composer_role()]),
+    );
+
+    assert!(credits::has_credits(&comp));
+    assert_eq!(credits::credits(&comp).length(), 1);
+
+    let (p2, p2c) = mk_party(b"Bob", ts.ctx());
+    credits::add_credit(
+        &mut comp,
+        &cap,
+        &p2,
+        credit::new(b"Bob".to_string(), vector[cpr::new_lyricist_role()]),
+    );
+    assert_eq!(credits::credits(&comp).length(), 2);
+
+    destroy(comp); destroy(cap); destroy(p1); destroy(p1c); destroy(p2); destroy(p2c);
+    ts.end();
+}
+
+#[test, expected_failure(abort_code = 40, location = composition_credits::composition_credits)] // EPartyAlreadyCredited
+fun add_credit_rejects_duplicate_party() {
+    let mut ts = test_scenario::begin(ARTIST);
+    let (mut comp, cap) = mk_composition(ts.ctx());
+    let (p, _pc) = mk_party(b"Alice", ts.ctx());
+    credits::add_credit(
+        &mut comp,
+        &cap,
+        &p,
+        credit::new(b"Alice".to_string(), vector[cpr::new_composer_role()]),
+    );
+    credits::add_credit(
+        &mut comp,
+        &cap,
+        &p,
+        credit::new(b"Alice".to_string(), vector[cpr::new_lyricist_role()]),
+    );
+    abort
+}
+
+#[test, expected_failure(abort_code = 30, location = composition_credits::composition_credits)] // EExceedsMaxRoles
+fun add_credit_rejects_too_many_roles() {
+    let mut ts = test_scenario::begin(ARTIST);
+    let (mut comp, cap) = mk_composition(ts.ctx());
+    let (p, _pc) = mk_party(b"Alice", ts.ctx());
+    credits::add_credit(
+        &mut comp,
+        &cap,
+        &p,
+        credit::new(b"Alice".to_string(), vector[
+            cpr::new_adapter_role(),
+            cpr::new_arranger_role(),
+            cpr::new_composer_role(),
+            cpr::new_lyricist_role(),
+            cpr::new_songwriter_role(),
+            cpr::new_translator_role(), // 6 > MAX_ROLES_PER_CREDIT (5)
+        ]),
+    );
+    abort
+}
+
+#[test]
+fun remove_credit_round_trip() {
+    let mut ts = test_scenario::begin(ARTIST);
+    let (mut comp, cap) = mk_composition(ts.ctx());
+    let (p, _pc) = mk_party(b"Alice", ts.ctx());
+    let pid = p.id();
+    credits::add_credit(
+        &mut comp,
+        &cap,
+        &p,
+        credit::new(b"Alice".to_string(), vector[cpr::new_composer_role()]),
+    );
+    assert_eq!(credits::credits(&comp).length(), 1);
+
+    credits::remove_credit(&mut comp, &cap, pid);
+    assert_eq!(credits::credits(&comp).length(), 0);
+
+    destroy(comp); destroy(cap); destroy(p); destroy(_pc);
+    ts.end();
+}

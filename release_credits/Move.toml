@@ -1,0 +1,9 @@
+[package]
+name = "release_credits"
+edition = "2024"
+license = "Apache 2.0"
+authors = ["Miso Labs, Inc. (build@miso.network)"]
+
+[dependencies]
+miso = { local = "../../miso-protocol/move" }
+partyos = { git = "https://github.com/misonetwork/partyos.git", rev = "main" }

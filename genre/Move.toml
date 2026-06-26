@@ -1,0 +1,9 @@
+[package]
+name = "genre"
+edition = "2024"
+license = "Apache 2.0"
+authors = ["Miso Labs, Inc. (build@miso.network)"]
+
+[dependencies]
+miso = { local = "../../miso-protocol/move" }
+per_track = { local = "../lib/per_track" }

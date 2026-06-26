@@ -1,0 +1,36 @@
+{
+  "name": "@misonetwork/miso-extensions",
+  "version": "0.1.0",
+  "description": "Typed query helpers and transaction builders for Miso first-party extensions (credits, cover art, genre) on Sui.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "codegen": "sui-ts-codegen generate"
+  },
+  "exports": {
+    "./credits": "./src/credits/index.ts",
+    "./cover-art": "./src/cover-art/index.ts",
+    "./genre": "./src/genre/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "package.json"
+  ],
+  "devDependencies": {
+    "@mysten/codegen": "^0.10.6",
+    "@mysten/sui": "^2.17.0",
+    "@types/bun": "^1.3.14"
+  },
+  "peerDependencies": {
+    "@mysten/sui": "^2.4.0",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@unconfirmed/ori": "^0.1.0",
+    "zod": "^4.3.6"
+  }
+}

@@ -31,7 +31,7 @@ deps = { std = "MoveStdlib", sui = "Sui" }
 [pinned.testnet.miso]
 source = { local = "../../miso-protocol/move" }
 use_environment = "testnet"
-manifest_digest = "F1ABA8290EA0B598018FB2EC80A177B8F728D0D5B8C0A58FB239F36FD429AEAB"
+manifest_digest = "7A3629CCD5A762A37DA102DCF7099DAB4332293BC7922A6EC53033C20F2C53B5"
 deps = { bps = "bps", miso_share = "miso_share", std = "MoveStdlib", sui = "Sui" }
 
 [pinned.testnet.miso_share]

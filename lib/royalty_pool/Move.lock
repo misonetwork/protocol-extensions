@@ -16,26 +16,14 @@ use_environment = "testnet"
 manifest_digest = "7AFB66695545775FBFBB2D3078ADFD084244D5002392E837FDE21D9EA1C6D01C"
 deps = { MoveStdlib = "MoveStdlib" }
 
-[pinned.testnet.bps]
-source = { git = "https://github.com/unconfirmedlabs/bps.git", subdir = ".", rev = "d1c07015b98c407e556d014eaa1f4991bd081372" }
+[pinned.testnet.hikida]
+source = { git = "https://github.com/unconfirmedlabs/hikida.git", subdir = ".", rev = "bc8e04947f5728328948df584b74ae8b03d17ef8" }
 use_environment = "testnet"
 manifest_digest = "5745706258F61D6CE210904B3E6AE87A73CE9D31A6F93BE4718C442529332A87"
 deps = { std = "MoveStdlib", sui = "Sui" }
 
-[pinned.testnet.miso]
-source = { local = "../../miso-protocol/move" }
-use_environment = "testnet"
-manifest_digest = "7A3629CCD5A762A37DA102DCF7099DAB4332293BC7922A6EC53033C20F2C53B5"
-deps = { bps = "bps", miso_share = "miso_share", std = "MoveStdlib", sui = "Sui" }
-
-[pinned.testnet.miso_share]
-source = { local = "../../miso-protocol/move/lib/share" }
-use_environment = "testnet"
-manifest_digest = "5745706258F61D6CE210904B3E6AE87A73CE9D31A6F93BE4718C442529332A87"
-deps = { std = "MoveStdlib", sui = "Sui" }
-
-[pinned.testnet.recording_master]
+[pinned.testnet.royalty_pool]
 source = { root = true }
 use_environment = "testnet"
-manifest_digest = "A4926C52A452CB77DDCF60F8DAC64A8D61128B27C5F4CE46A1436ECA9868C54E"
-deps = { miso = "miso", std = "MoveStdlib", sui = "Sui" }
+manifest_digest = "4F8543DEFD84780CE4B0E7BFAABDE7CA9E9F89F81005EA950D2F10993334E318"
+deps = { hikida = "hikida", std = "MoveStdlib", sui = "Sui" }

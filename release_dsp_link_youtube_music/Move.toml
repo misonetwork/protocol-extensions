@@ -1,9 +1,8 @@
 [package]
-name = "streaming_links"
+name = "release_dsp_link_youtube_music"
 edition = "2024"
 license = "Apache 2.0"
 authors = ["Miso Labs, Inc. (build@miso.network)"]
 
 [dependencies]
-miso = { local = "../../miso-protocol/move" }
-per_track = { local = "../lib/per_track" }
+dsp_link = { local = "../lib/dsp_link" }

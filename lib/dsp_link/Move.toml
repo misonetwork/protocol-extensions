@@ -1,0 +1,9 @@
+[package]
+name = "dsp_link"
+edition = "2024"
+license = "Apache 2.0"
+authors = ["Miso Labs, Inc. (build@miso.network)"]
+
+# A protocol-agnostic primitive: a generic, typed link to a release on one
+# Digital Service Provider, stored as a dynamic field on any object's UID. It
+# touches nothing but the Sui framework — no miso, no per_track — by design.

@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[test_only]
-module genre::release_genre_tests;
+module release_genre::release_genre_tests;
 
 use genre::genre as g;
 use genre::genre::{GenreRegistry, GenreRegistryCap, Genre};
-use genre::release_genre as rg;
+use release_genre::release_genre as rg;
 use miso::disc;
 use miso::release::{Self, Release, ReleaseAdminCap};
 use miso::test_helpers;
@@ -102,7 +102,7 @@ fun replace_primary_after_hold_period() {
 }
 
 #[test]
-#[expected_failure(abort_code = 31, location = genre::release_genre)] // EPrimaryGenreLocked
+#[expected_failure(abort_code = 31, location = release_genre::release_genre)] // EPrimaryGenreLocked
 fun change_primary_too_soon_aborts() {
     let mut scenario = ts::begin(CURATOR);
     g::init_for_testing(scenario.ctx());
@@ -163,7 +163,7 @@ fun add_and_remove_secondary_genres() {
 }
 
 #[test]
-#[expected_failure(abort_code = 30, location = genre::release_genre)] // ENoPrimaryGenre
+#[expected_failure(abort_code = 30, location = release_genre::release_genre)] // ENoPrimaryGenre
 fun secondary_before_primary_aborts() {
     let mut scenario = ts::begin(CURATOR);
     g::init_for_testing(scenario.ctx());
@@ -184,7 +184,7 @@ fun secondary_before_primary_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 40, location = genre::release_genre)] // ESecondaryIsPrimary
+#[expected_failure(abort_code = 40, location = release_genre::release_genre)] // ESecondaryIsPrimary
 fun secondary_equal_primary_aborts() {
     let mut scenario = ts::begin(CURATOR);
     g::init_for_testing(scenario.ctx());
@@ -206,7 +206,7 @@ fun secondary_equal_primary_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 41, location = genre::release_genre)] // EGenreAlreadySecondary
+#[expected_failure(abort_code = 41, location = release_genre::release_genre)] // EGenreAlreadySecondary
 fun duplicate_secondary_aborts() {
     let mut scenario = ts::begin(CURATOR);
     g::init_for_testing(scenario.ctx());
@@ -267,7 +267,7 @@ fun track_override_resolves_over_album() {
 }
 
 #[test]
-#[expected_failure(abort_code = 30, location = genre::release_genre)] // ENoPrimaryGenre
+#[expected_failure(abort_code = 30, location = release_genre::release_genre)] // ENoPrimaryGenre
 fun track_override_before_primary_aborts() {
     let mut scenario = ts::begin(CURATOR);
     g::init_for_testing(scenario.ctx());
@@ -288,7 +288,7 @@ fun track_override_before_primary_aborts() {
 }
 
 #[test]
-#[expected_failure(abort_code = 50, location = genre::release_genre)] // ETrackIndexOutOfBounds
+#[expected_failure(abort_code = 50, location = release_genre::release_genre)] // ETrackIndexOutOfBounds
 fun track_override_out_of_bounds_aborts() {
     let mut scenario = ts::begin(CURATOR);
     g::init_for_testing(scenario.ctx());

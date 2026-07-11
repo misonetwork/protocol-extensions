@@ -1,0 +1,11 @@
+[package]
+name = "genre"
+edition = "2024"
+license = "Apache 2.0"
+authors = ["Miso Labs, Inc. (build@miso.network)"]
+
+# The genre vocabulary primitive: a curated, name-derived set of `Genre` objects.
+# Depends on nothing but the Sui framework by design, so any consumer — a
+# release, a party, anything — can reference the shared vocabulary without
+# pulling in a protocol. Genre *assignment* lives in the separate consumer
+# packages (release_genre, party_genre, …).

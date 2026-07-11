@@ -6,4 +6,4 @@ authors = ["Miso Labs, Inc. (build@miso.network)"]
 
 [dependencies]
 miso = { local = "../../miso-protocol/move" }
-partyos = { local = "../../miso-party/move/core", rename-from = "miso_party" }
+partyos = { local = "../../miso-party", rename-from = "miso_party" }

@@ -14,7 +14,7 @@
 /// (anti-churn) lock — the first set is free, later changes are throttled — so
 /// a release's declared genre stays stable enough to be reward-eligible.
 /// Per-track overrides are display refinements and are not locked.
-module genre::release_genre;
+module release_genre::release_genre;
 
 use genre::genre::Genre;
 use miso::release::{Release, ReleaseAdminCap};

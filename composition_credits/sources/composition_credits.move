@@ -17,7 +17,7 @@ module composition_credits::composition_credits;
 
 use composition_credits::composition_party_role::CompositionPartyRole;
 use miso::composition::{Composition, CompositionAdminCap};
-use partyos::credit::Credit;
+use credit::credit::Credit;
 use partyos::party::Party;
 use sui::dynamic_field as df;
 use sui::vec_map::{Self, VecMap};

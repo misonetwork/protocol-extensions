@@ -6,7 +6,7 @@ module recording_credits::credits_tests;
 
 use miso::recording::{Self, Recording, RecordingAdminCap};
 use miso::test_helpers::{RecordingShare, CompositionShare};
-use partyos::credit;
+use credit::credit;
 use partyos::party::{Self, Party, PartyAdminCap};
 use recording_credits::recording_credits as credits;
 use recording_credits::recording_party_role as rpr;
@@ -22,7 +22,10 @@ fun mk_recording(
 }
 
 fun mk_party(name: vector<u8>, ctx: &mut TxContext): (Party, PartyAdminCap) {
-    party::new(party::new_individual_kind(), name.to_string(), ctx)
+    let clock = sui::clock::create_for_testing(ctx);
+    let (party, cap) = party::new(party::new_individual_kind(), name.to_string(), &clock, ctx);
+    clock.destroy_for_testing();
+    (party, cap)
 }
 
 #[test]

@@ -5,7 +5,7 @@
 module release_credits::credits_tests;
 
 use miso::release::{Self, Release, ReleaseAdminCap};
-use partyos::credit;
+use credit::credit;
 use partyos::party::{Self, Party, PartyAdminCap};
 use release_credits::release_credits as credits;
 use release_credits::release_party_role as rpr;
@@ -19,7 +19,10 @@ fun mk_release(ctx: &mut TxContext): (Release, ReleaseAdminCap) {
 }
 
 fun mk_party(name: vector<u8>, ctx: &mut TxContext): (Party, PartyAdminCap) {
-    party::new(party::new_individual_kind(), name.to_string(), ctx)
+    let clock = sui::clock::create_for_testing(ctx);
+    let (party, cap) = party::new(party::new_individual_kind(), name.to_string(), &clock, ctx);
+    clock.destroy_for_testing();
+    (party, cap)
 }
 
 #[test]

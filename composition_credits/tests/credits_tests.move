@@ -8,7 +8,7 @@ use composition_credits::composition_party_role as cpr;
 use composition_credits::composition_credits as credits;
 use miso::composition::{Self, Composition, CompositionAdminCap};
 use miso::test_helpers::CompositionShare;
-use partyos::credit;
+use credit::credit;
 use partyos::party::{Self, Party, PartyAdminCap};
 use std::unit_test::{assert_eq, destroy};
 use sui::test_scenario;
@@ -22,7 +22,10 @@ fun mk_composition(
 }
 
 fun mk_party(name: vector<u8>, ctx: &mut TxContext): (Party, PartyAdminCap) {
-    party::new(party::new_individual_kind(), name.to_string(), ctx)
+    let clock = sui::clock::create_for_testing(ctx);
+    let (party, cap) = party::new(party::new_individual_kind(), name.to_string(), &clock, ctx);
+    clock.destroy_for_testing();
+    (party, cap)
 }
 
 #[test]

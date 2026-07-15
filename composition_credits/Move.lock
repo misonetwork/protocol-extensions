@@ -26,10 +26,10 @@ deps = { std = "MoveStdlib", sui = "Sui" }
 source = { root = true }
 use_environment = "testnet"
 manifest_digest = "02B0E26AE5D030F0EF8597632E039540C20038F6869D5FC7F61426A3344C09F6"
-deps = { credit = "credit", miso = "miso", partyos = "miso_party", std = "MoveStdlib", sui = "Sui" }
+deps = { miso_credit = "miso_credit", miso = "miso", partyos = "miso_party", std = "MoveStdlib", sui = "Sui" }
 
-[pinned.testnet.credit]
-source = { local = "../../credit" }
+[pinned.testnet.miso_credit]
+source = { local = "../../miso-credit" }
 use_environment = "testnet"
 manifest_digest = "5745706258F61D6CE210904B3E6AE87A73CE9D31A6F93BE4718C442529332A87"
 deps = { std = "MoveStdlib", sui = "Sui" }

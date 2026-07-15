@@ -5,7 +5,7 @@
 module release_credits::credits_tests;
 
 use miso::release::{Self, Release, ReleaseAdminCap};
-use credit::credit;
+use miso_credit::credit;
 use partyos::party::{Self, Party, PartyAdminCap};
 use release_credits::release_credits as credits;
 use release_credits::release_party_role as rpr;

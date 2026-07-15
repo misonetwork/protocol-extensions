@@ -6,7 +6,7 @@ module recording_credits::credits_tests;
 
 use miso::recording::{Self, Recording, RecordingAdminCap};
 use miso::test_helpers::{RecordingShare, CompositionShare};
-use credit::credit;
+use miso_credit::credit;
 use partyos::party::{Self, Party, PartyAdminCap};
 use recording_credits::recording_credits as credits;
 use recording_credits::recording_party_role as rpr;

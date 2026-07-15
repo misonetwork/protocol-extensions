@@ -8,7 +8,7 @@ use composition_credits::composition_party_role as cpr;
 use composition_credits::composition_credits as credits;
 use miso::composition::{Self, Composition, CompositionAdminCap};
 use miso::test_helpers::CompositionShare;
-use credit::credit;
+use miso_credit::credit;
 use partyos::party::{Self, Party, PartyAdminCap};
 use std::unit_test::{assert_eq, destroy};
 use sui::test_scenario;

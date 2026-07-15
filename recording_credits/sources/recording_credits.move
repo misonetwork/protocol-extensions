@@ -16,7 +16,7 @@
 module recording_credits::recording_credits;
 
 use miso::recording::{Recording, RecordingAdminCap};
-use credit::credit::Credit;
+use miso_credit::credit::Credit;
 use partyos::party::Party;
 use recording_credits::recording_party_role::RecordingPartyRole;
 use sui::dynamic_field as df;

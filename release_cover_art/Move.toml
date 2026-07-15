@@ -1,10 +1,10 @@
 [package]
-name = "cover_art"
+name = "release_cover_art"
 edition = "2024"
 license = "Apache 2.0"
 authors = ["Miso Labs, Inc. (build@miso.network)"]
 
 [dependencies]
+cover_art = { local = "../lib/cover_art" }
 miso = { local = "../../miso-protocol/move" }
-ori = { git = "https://github.com/unconfirmedlabs/ori.git", subdir = "move", rev = "84d5da270e5860b144961dd4665690238b49560c" }
 per_track = { local = "../lib/per_track" }

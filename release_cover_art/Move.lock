@@ -5,13 +5,13 @@
 version = 4
 
 [pinned.testnet.MoveStdlib]
-source = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/move-stdlib", rev = "b124567746b3a78a7e294ac2de265f693401ec9d" }
+source = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/move-stdlib", rev = "b9149cbf0b2cb9ae5ed830407a9b48c7ae3fd36c" }
 use_environment = "testnet"
 manifest_digest = "C4FE4C91DE74CBF223B2E380AE40F592177D21870DC2D7EB6227D2D694E05363"
 deps = {}
 
 [pinned.testnet.Sui]
-source = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "b124567746b3a78a7e294ac2de265f693401ec9d" }
+source = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "b9149cbf0b2cb9ae5ed830407a9b48c7ae3fd36c" }
 use_environment = "testnet"
 manifest_digest = "7AFB66695545775FBFBB2D3078ADFD084244D5002392E837FDE21D9EA1C6D01C"
 deps = { MoveStdlib = "MoveStdlib" }
@@ -23,10 +23,10 @@ manifest_digest = "5745706258F61D6CE210904B3E6AE87A73CE9D31A6F93BE4718C442529332
 deps = { std = "MoveStdlib", sui = "Sui" }
 
 [pinned.testnet.cover_art]
-source = { root = true }
+source = { local = "../lib/cover_art" }
 use_environment = "testnet"
-manifest_digest = "0903954BA4D8E604EE37998724C7186A2453BC9614978EB3D02C3DB44FBF3DC2"
-deps = { miso = "miso", ori = "ori", per_track = "per_track", std = "MoveStdlib", sui = "Sui" }
+manifest_digest = "77804F494CBBD2193846EF620BF429D3E1CFD981E9F2208A6E4AF31DA9E6C8D3"
+deps = { ori = "ori", std = "MoveStdlib", sui = "Sui" }
 
 [pinned.testnet.miso]
 source = { local = "../../miso-protocol/move" }
@@ -51,3 +51,9 @@ source = { local = "../lib/per_track" }
 use_environment = "testnet"
 manifest_digest = "B61D3D5B8D3C629C3D9A3130480E9F6BC5232599576087E7A902EFE71AE33FAC"
 deps = { miso = "miso", std = "MoveStdlib", sui = "Sui" }
+
+[pinned.testnet.release_cover_art]
+source = { root = true }
+use_environment = "testnet"
+manifest_digest = "6067759099D287F743BE2C05CF06708F65020FC7361BE67C12C6565F81AF1BDE"
+deps = { cover_art = "cover_art", miso = "miso", per_track = "per_track", std = "MoveStdlib", sui = "Sui" }

@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[test_only]
-module cover_art::cover_art_tests;
+module release_cover_art::cover_art_tests;
 
 use cover_art::cover_art as cover;
-use cover_art::release_cover_art;
 use miso::disc;
 use miso::release::{Self, Release, ReleaseAdminCap};
 use miso::test_helpers;
 use miso::track;
+use release_cover_art::release_cover_art;
 use std::unit_test::destroy;
 use sui::test_scenario;
 
@@ -79,7 +79,7 @@ fun track_cover_override_resolves_over_album() {
     ts.end();
 }
 
-#[test, expected_failure(abort_code = 2, location = cover_art::release_cover_art)] // ETrackIndexOutOfBounds
+#[test, expected_failure(abort_code = 2, location = release_cover_art)] // ETrackIndexOutOfBounds
 fun set_track_cover_rejects_out_of_bounds_index() {
     let mut ts = test_scenario::begin(A);
     let (mut rel, cap) = mk_release(ts.ctx()); // 3 tracks → index 3 is invalid

@@ -10,7 +10,7 @@
 /// cover resolves as: its per-track override if set, else the album cover. The
 /// overrides are a `PerTrack<Option<CoverArt>>` — one slot per track, aligned to
 /// the release's tracklist by construction (sized from `total_tracks()`).
-module cover_art::release_cover_art;
+module release_cover_art::release_cover_art;
 
 use cover_art::cover_art::CoverArt;
 use miso::release::{Release, ReleaseAdminCap};

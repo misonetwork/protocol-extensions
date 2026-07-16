@@ -22,6 +22,7 @@ Each package in this repo is independent and published separately — depend on 
 | [`release_credits`](./release_credits) | `Release` | Top-line release billing (primary / featured artists). |
 | [`recording_attribution`](./recording_attribution) | `Recording` | Opt-in generative-use licensing plus immutable per-edge attribution that routes a generated recording's revenue back to its sources. |
 | [`recording_master`](./recording_master) | `Recording` | Generic, media-agnostic attachment of ingester-produced master values, namespaced by witness type and content digest. |
+| [`recording_preview`](./recording_preview) | `Recording` | Public audio preview clip — a single Walrus blob reference, cap-gated writes, no ingestion/attestation in V1. |
 | [`cover_art`](./cover_art) | `Release` | Evolvable cover-art metadata (still image + optional animation) referencing Walrus storage. |
 | [`genre`](./genre) | `Release` | Curated genre vocabulary plus release genre assignment (one primary + secondary genres). |
 | [`streaming_links`](./streaming_links) | `Release` | External streaming-platform deep links for a release — album-level and per-track. |
@@ -37,7 +38,7 @@ Extensions read Miso objects and build on a few shared primitives. Each package 
 | [`per_track`](./lib/per_track) | `cover_art`, `genre`, `streaming_links` | Per-track parallel array validated against a release's tracklist |
 | `hikida` | royalty pools, `composition_recording_stake`, `release_revenue_distributor` | Balance accumulator for the `redeem_*` paths |
 | `partyos` | `*_credits` | Party identity for credit attribution |
-| [`ori`](https://github.com/unconfirmedlabs/ori) | `cover_art` | Walrus data references |
+| [`ori`](https://github.com/unconfirmedlabs/ori) | `cover_art`, `recording_preview` | Walrus data references |
 
 The `miso` dependency resolves to the sibling `miso-protocol` checkout (`../../miso-protocol/move`). To build against the published protocol instead, point it at the git source:
 

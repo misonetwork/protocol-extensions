@@ -5,7 +5,7 @@
 ///
 /// Attribution (credits + primary/featured artists) is display-oriented and
 /// varies across platforms, so it lives here as a dynamic field on the recording
-/// rather than in immutable core. The data is attached under `RecordingCreditsKey()` via
+/// rather than in immutable core. The data is attached under `ExtensionKey()` via
 /// the recording's cap-gated `uid_mut`, so every mutation is authorized by the
 /// recording's admin and credits survive into any lifecycle state (they may be
 /// attached before or after the recording is published).
@@ -69,10 +69,10 @@ const EPartyNotCredited: u64 = 52;
 // === Dynamic field key + value ===
 
 /// Dynamic-field key — one canonical credits record per recording.
-public struct RecordingCreditsKey() has copy, drop, store;
+public struct ExtensionKey() has copy, drop, store;
 
 /// The per-recording attribution record, stored as a dynamic field on the
-/// recording's UID under `RecordingCreditsKey()`.
+/// recording's UID under `ExtensionKey()`.
 public struct RecordingCredits has store {
     /// Map of party IDs to their credit (display name + roles).
     credits: VecMap<ID, Credit<RecordingPartyRole>>,
@@ -178,7 +178,7 @@ public fun remove_featured_artist<RecordingShare, CompositionShare>(
 public fun has_credits<RecordingShare, CompositionShare>(
     self: &Recording<RecordingShare, CompositionShare>,
 ): bool {
-    df::exists(self.uid(), RecordingCreditsKey())
+    df::exists(self.uid(), ExtensionKey())
 }
 
 /// Returns the party-to-credit map. Aborts if no credits are attached.
@@ -221,20 +221,20 @@ public fun is_featured_artist<RecordingShare, CompositionShare>(
 // === Private Functions ===
 
 fun borrow(uid: &UID): &RecordingCredits {
-    assert!(df::exists(uid, RecordingCreditsKey()), ENoCredits);
-    df::borrow(uid, RecordingCreditsKey())
+    assert!(df::exists(uid, ExtensionKey()), ENoCredits);
+    df::borrow(uid, ExtensionKey())
 }
 
 fun borrow_mut(uid: &mut UID): &mut RecordingCredits {
-    assert!(df::exists(uid, RecordingCreditsKey()), ENoCredits);
-    df::borrow_mut(uid, RecordingCreditsKey())
+    assert!(df::exists(uid, ExtensionKey()), ENoCredits);
+    df::borrow_mut(uid, ExtensionKey())
 }
 
 fun borrow_mut_or_init(uid: &mut UID): &mut RecordingCredits {
-    if (!df::exists(uid, RecordingCreditsKey())) {
+    if (!df::exists(uid, ExtensionKey())) {
         df::add(
             uid,
-            RecordingCreditsKey(),
+            ExtensionKey(),
             RecordingCredits {
                 credits: vec_map::empty(),
                 primary_artist_ids: vec_set::empty(),
@@ -242,5 +242,5 @@ fun borrow_mut_or_init(uid: &mut UID): &mut RecordingCredits {
             },
         );
     };
-    df::borrow_mut(uid, RecordingCreditsKey())
+    df::borrow_mut(uid, ExtensionKey())
 }

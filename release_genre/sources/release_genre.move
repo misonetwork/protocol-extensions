@@ -25,7 +25,7 @@ use sui::event::emit;
 // === Dynamic field key + value ===
 
 /// Dynamic-field key for a release's genre assignment.
-public struct GenreAssignmentKey() has copy, drop, store;
+public struct ExtensionKey() has copy, drop, store;
 
 /// A release's genre assignment: an album-level primary + secondaries, plus
 /// per-track primary overrides (a track with no override inherits the album
@@ -120,8 +120,8 @@ public fun set_primary_genre(
     let genre_id = genre.id();
     let epoch = ctx.epoch();
 
-    if (df::exists(self.uid(), GenreAssignmentKey())) {
-        let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), GenreAssignmentKey());
+    if (df::exists(self.uid(), ExtensionKey())) {
+        let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
         assert!(
             epoch >= assignment.primary_set_epoch + MIN_PRIMARY_GENRE_EPOCHS,
             EPrimaryGenreLocked,
@@ -133,7 +133,7 @@ public fun set_primary_genre(
         let track_primary = per_track::filled(self, option::none<ID>());
         df::add(
             self.uid_mut(cap),
-            GenreAssignmentKey(),
+            ExtensionKey(),
             ReleaseGenre {
                 primary: genre_id,
                 primary_set_epoch: epoch,
@@ -152,8 +152,8 @@ public fun add_secondary_genre(self: &mut Release, cap: &ReleaseAdminCap, genre:
     let release_id = self.id();
     let genre_id = genre.id();
 
-    assert!(df::exists(self.uid(), GenreAssignmentKey()), ENoPrimaryGenre);
-    let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), GenreAssignmentKey());
+    assert!(df::exists(self.uid(), ExtensionKey()), ENoPrimaryGenre);
+    let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
     assert!(genre_id != assignment.primary, ESecondaryIsPrimary);
     assert!(!assignment.secondary.contains(&genre_id), EGenreAlreadySecondary);
     assert!(assignment.secondary.length() < MAX_SECONDARY_GENRES, EMaxSecondaryGenres);
@@ -167,8 +167,8 @@ public fun remove_secondary_genre(self: &mut Release, cap: &ReleaseAdminCap, gen
     let release_id = self.id();
     let genre_id = genre.id();
 
-    assert!(df::exists(self.uid(), GenreAssignmentKey()), ENoPrimaryGenre);
-    let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), GenreAssignmentKey());
+    assert!(df::exists(self.uid(), ExtensionKey()), ENoPrimaryGenre);
+    let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
     let (found, idx) = assignment.secondary.index_of(&genre_id);
     assert!(found, EGenreNotSecondary);
     assignment.secondary.remove(idx);
@@ -189,9 +189,9 @@ public fun set_track_primary_genre(
     let release_id = self.id();
     let genre_id = genre.id();
 
-    assert!(df::exists(self.uid(), GenreAssignmentKey()), ENoPrimaryGenre);
+    assert!(df::exists(self.uid(), ExtensionKey()), ENoPrimaryGenre);
     assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
-    let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), GenreAssignmentKey());
+    let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
     assignment.track_primary.borrow_mut(track_index).swap_or_fill(genre_id);
 
     emit(TrackPrimaryGenreSetEvent { release_id, track_index, genre_id });
@@ -202,9 +202,9 @@ public fun set_track_primary_genre(
 public fun unset_track_primary_genre(self: &mut Release, cap: &ReleaseAdminCap, track_index: u64) {
     let release_id = self.id();
 
-    assert!(df::exists(self.uid(), GenreAssignmentKey()), ENoPrimaryGenre);
+    assert!(df::exists(self.uid(), ExtensionKey()), ENoPrimaryGenre);
     assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
-    let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), GenreAssignmentKey());
+    let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
     *assignment.track_primary.borrow_mut(track_index) = option::none();
 
     emit(TrackPrimaryGenreUnsetEvent { release_id, track_index });
@@ -214,14 +214,14 @@ public fun unset_track_primary_genre(self: &mut Release, cap: &ReleaseAdminCap, 
 
 /// Returns whether the release has a genre assignment.
 public fun has_genre(self: &Release): bool {
-    df::exists(self.uid(), GenreAssignmentKey())
+    df::exists(self.uid(), ExtensionKey())
 }
 
 /// Returns the album primary genre id, if set.
 public fun primary_genre(self: &Release): Option<ID> {
     let uid = self.uid();
-    if (df::exists(uid, GenreAssignmentKey())) {
-        option::some(df::borrow<GenreAssignmentKey, ReleaseGenre>(uid, GenreAssignmentKey()).primary)
+    if (df::exists(uid, ExtensionKey())) {
+        option::some(df::borrow<ExtensionKey, ReleaseGenre>(uid, ExtensionKey()).primary)
     } else {
         option::none()
     }
@@ -230,8 +230,8 @@ public fun primary_genre(self: &Release): Option<ID> {
 /// Returns the album secondary genre ids (empty if none).
 public fun secondary_genres(self: &Release): vector<ID> {
     let uid = self.uid();
-    if (df::exists(uid, GenreAssignmentKey())) {
-        df::borrow<GenreAssignmentKey, ReleaseGenre>(uid, GenreAssignmentKey()).secondary
+    if (df::exists(uid, ExtensionKey())) {
+        df::borrow<ExtensionKey, ReleaseGenre>(uid, ExtensionKey()).secondary
     } else {
         vector[]
     }
@@ -242,9 +242,9 @@ public fun secondary_genres(self: &Release): vector<ID> {
 /// track index is out of range (when an assignment exists).
 public fun track_primary_genre(self: &Release, track_index: u64): Option<ID> {
     let uid = self.uid();
-    if (!df::exists(uid, GenreAssignmentKey())) return option::none();
+    if (!df::exists(uid, ExtensionKey())) return option::none();
     assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
-    let assignment = df::borrow<GenreAssignmentKey, ReleaseGenre>(uid, GenreAssignmentKey());
+    let assignment = df::borrow<ExtensionKey, ReleaseGenre>(uid, ExtensionKey());
     let override = assignment.track_primary.borrow(track_index);
     if (override.is_some()) *override else option::some(assignment.primary)
 }

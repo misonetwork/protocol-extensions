@@ -5,7 +5,7 @@
 ///
 /// Attribution (writing credits) is display-oriented and varies across
 /// platforms, so it lives here as a dynamic field on the composition rather than
-/// in immutable core. The data is attached under `CompositionCreditsKey()` via the
+/// in immutable core. The data is attached under `ExtensionKey()` via the
 /// composition's cap-gated `uid_mut`, so every mutation is authorized by the
 /// composition's admin and credits survive into any lifecycle state (they may be
 /// attached before or after the composition is published).
@@ -56,10 +56,10 @@ const EPartyNotCredited: u64 = 52;
 // === Dynamic field key + value ===
 
 /// Dynamic-field key — one canonical credits record per composition.
-public struct CompositionCreditsKey() has copy, drop, store;
+public struct ExtensionKey() has copy, drop, store;
 
 /// The per-composition attribution record, stored as a dynamic field on the
-/// composition's UID under `CompositionCreditsKey()`.
+/// composition's UID under `ExtensionKey()`.
 public struct CompositionCredits has store {
     /// Map of party IDs to their credit (display name + roles).
     credits: VecMap<ID, Credit<CompositionPartyRole>>,
@@ -101,7 +101,7 @@ public fun remove_credit<CompositionShare>(
 
 /// Returns whether a credits record has been attached to this composition yet.
 public fun has_credits<CompositionShare>(self: &Composition<CompositionShare>): bool {
-    df::exists(self.uid(), CompositionCreditsKey())
+    df::exists(self.uid(), ExtensionKey())
 }
 
 /// Returns the party-to-credit map. Aborts if no credits are attached.
@@ -114,24 +114,24 @@ public fun credits<CompositionShare>(
 // === Private Functions ===
 
 fun borrow(uid: &UID): &CompositionCredits {
-    assert!(df::exists(uid, CompositionCreditsKey()), ENoCredits);
-    df::borrow(uid, CompositionCreditsKey())
+    assert!(df::exists(uid, ExtensionKey()), ENoCredits);
+    df::borrow(uid, ExtensionKey())
 }
 
 fun borrow_mut(uid: &mut UID): &mut CompositionCredits {
-    assert!(df::exists(uid, CompositionCreditsKey()), ENoCredits);
-    df::borrow_mut(uid, CompositionCreditsKey())
+    assert!(df::exists(uid, ExtensionKey()), ENoCredits);
+    df::borrow_mut(uid, ExtensionKey())
 }
 
 fun borrow_mut_or_init(uid: &mut UID): &mut CompositionCredits {
-    if (!df::exists(uid, CompositionCreditsKey())) {
+    if (!df::exists(uid, ExtensionKey())) {
         df::add(
             uid,
-            CompositionCreditsKey(),
+            ExtensionKey(),
             CompositionCredits {
                 credits: vec_map::empty(),
             },
         );
     };
-    df::borrow_mut(uid, CompositionCreditsKey())
+    df::borrow_mut(uid, ExtensionKey())
 }

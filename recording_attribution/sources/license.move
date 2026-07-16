@@ -44,7 +44,7 @@ public struct RecordingAttributionLicense has drop, store {
     scopes: VecSet<String>,
 }
 
-public struct RecordingAttributionLicenseKey() has copy, drop, store;
+public struct ExtensionKey() has copy, drop, store;
 
 // === Events ===
 
@@ -87,11 +87,11 @@ public fun attach<RecordingShare, CompositionShare>(
     let scopes = vec_set::from_keys(scopes); // aborts on duplicates
 
     let uid = recording.uid_mut(cap);
-    assert!(!df::exists(uid, RecordingAttributionLicenseKey()), ELicenseAlreadyAttached);
+    assert!(!df::exists(uid, ExtensionKey()), ELicenseAlreadyAttached);
 
     emit(LicenseAttachedEvent<RecordingShare> { scopes });
 
-    df::add(uid, RecordingAttributionLicenseKey(), RecordingAttributionLicense { scopes });
+    df::add(uid, ExtensionKey(), RecordingAttributionLicense { scopes });
 }
 
 /// Detach the license. Blocks creation of new attribution edges for this
@@ -101,11 +101,11 @@ public fun revoke<RecordingShare, CompositionShare>(
     cap: &RecordingAdminCap<RecordingShare>,
 ) {
     let uid = recording.uid_mut(cap);
-    assert!(df::exists(uid, RecordingAttributionLicenseKey()), ENoLicenseAttached);
+    assert!(df::exists(uid, ExtensionKey()), ENoLicenseAttached);
 
-    df::remove<RecordingAttributionLicenseKey, RecordingAttributionLicense>(
+    df::remove<ExtensionKey, RecordingAttributionLicense>(
         uid,
-        RecordingAttributionLicenseKey(),
+        ExtensionKey(),
     );
 
     emit(LicenseRevokedEvent<RecordingShare> {});
@@ -117,7 +117,7 @@ public fun revoke<RecordingShare, CompositionShare>(
 public fun is_attached<RecordingShare, CompositionShare>(
     recording: &Recording<RecordingShare, CompositionShare>,
 ): bool {
-    df::exists(recording.uid(), RecordingAttributionLicenseKey())
+    df::exists(recording.uid(), ExtensionKey())
 }
 
 /// Whether the license grants the given scope. False when no license is
@@ -158,7 +158,7 @@ public fun scopes<RecordingShare, CompositionShare>(
 fun borrow<RecordingShare, CompositionShare>(
     recording: &Recording<RecordingShare, CompositionShare>,
 ): &RecordingAttributionLicense {
-    df::borrow(recording.uid(), RecordingAttributionLicenseKey())
+    df::borrow(recording.uid(), ExtensionKey())
 }
 
 /// Scope identifiers are enforced canonical so the `grants_all` subset

@@ -2,9 +2,9 @@
 
 > Generic, media-agnostic extension for attaching ingester-produced "master" values to a Miso recording, namespaced by the ingester witness and a content digest.
 
-**Attaches to:** `Recording` (Miso core) as dynamic fields on its `&mut UID`, reached through the recording's cap-gated `uid_mut`. The module never references a concrete master type, so it blesses no specific ingester. Attachment is via Sui dynamic fields keyed by `MasterKey { ingester, content_digest }`.
+**Attaches to:** `Recording` (Miso core) as dynamic fields on its `&mut UID`, reached through the recording's cap-gated `uid_mut`. The module never references a concrete master type, so it blesses no specific ingester. Attachment is via Sui dynamic fields keyed by `ExtensionKey { ingester, content_digest }`.
 
-A "master" is any value with `store` (e.g. Miso's `audio::Audio`, or a future video/immersive type). Each master is stored under a `MasterKey` whose `ingester` component is the defining `TypeName` of an ingester witness `W`, derived inside `add` from the witness itself — so only a package that can produce `W` can write under `W`'s namespace. The `content_digest` (e.g. a PCM digest) discriminates multiple masters from the same ingester and is a stable, storage-independent handle that survives re-keying / re-encoding.
+A "master" is any value with `store` (e.g. Miso's `audio::Audio`, or a future video/immersive type). Each master is stored under a `ExtensionKey` whose `ingester` component is the defining `TypeName` of an ingester witness `W`, derived inside `add` from the witness itself — so only a package that can produce `W` can write under `W`'s namespace. The `content_digest` (e.g. a PCM digest) discriminates multiple masters from the same ingester and is a stable, storage-independent handle that survives re-keying / re-encoding.
 
 The design is doubly gated: writing requires the rights holder's authority (the `RecordingAdminCap`, which yields `uid_mut`), and writing a given namespace requires the ingester witness. Trust is a key lookup, not a registry — a consumer reads masters from the ingester type(s) it trusts and ignores the rest. Detaching and reads require only the recording, since removing or inspecting a value cannot forge namespace trust.
 
@@ -19,9 +19,9 @@ The extension operates on `Recording` directly rather than a bare `&mut UID`: a 
 
 - **`master::borrow<RecordingShare, CompositionShare, M: store>`** — Borrows the master attached under `(ingester, content_digest)`.
 - **`master::exists_`** — Returns whether a master is attached under `(ingester, content_digest)`.
-- **`master::new_key`** — Builds a `MasterKey` from `(ingester, content_digest)`, e.g. for clients computing the dynamic-field id.
-- **`master::key_ingester`** — Returns the ingester `TypeName` of a `MasterKey`.
-- **`master::key_content_digest`** — Returns the `content_digest` of a `MasterKey`.
+- **`master::new_key`** — Builds a `ExtensionKey` from `(ingester, content_digest)`, e.g. for clients computing the dynamic-field id.
+- **`master::key_ingester`** — Returns the ingester `TypeName` of a `ExtensionKey`.
+- **`master::key_content_digest`** — Returns the `content_digest` of a `ExtensionKey`.
 
 ## Dependencies
 

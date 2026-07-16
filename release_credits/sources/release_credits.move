@@ -5,7 +5,7 @@
 ///
 /// Attribution (top-line billing) is display-oriented and varies across
 /// platforms, so it lives here as a dynamic field on the release rather than in
-/// immutable core. The data is attached under `ReleaseCreditsKey()` via the release's
+/// immutable core. The data is attached under `ExtensionKey()` via the release's
 /// cap-gated `uid_mut`, so every mutation is authorized by the release's admin
 /// and credits survive into any lifecycle state (they may be attached before or
 /// after the release is published).
@@ -53,10 +53,10 @@ const EInvalidCreditRoleCount: u64 = 53;
 // === Dynamic field key + value ===
 
 /// Dynamic-field key — one canonical credits record per release.
-public struct ReleaseCreditsKey() has copy, drop, store;
+public struct ExtensionKey() has copy, drop, store;
 
 /// The per-release attribution record, stored as a dynamic field on the
-/// release's UID under `ReleaseCreditsKey()`.
+/// release's UID under `ExtensionKey()`.
 public struct ReleaseCredits has store {
     /// Map of party IDs to their credit (display name + role).
     credits: VecMap<ID, Credit<ReleasePartyRole>>,
@@ -94,7 +94,7 @@ public fun remove_credit(self: &mut Release, cap: &ReleaseAdminCap, party_id: ID
 
 /// Returns whether a credits record has been attached to this release yet.
 public fun has_credits(self: &Release): bool {
-    df::exists(self.uid(), ReleaseCreditsKey())
+    df::exists(self.uid(), ExtensionKey())
 }
 
 /// Returns the party-to-credit map. Aborts if no credits are attached.
@@ -105,24 +105,24 @@ public fun credits(self: &Release): &VecMap<ID, Credit<ReleasePartyRole>> {
 // === Private Functions ===
 
 fun borrow(uid: &UID): &ReleaseCredits {
-    assert!(df::exists(uid, ReleaseCreditsKey()), ENoCredits);
-    df::borrow(uid, ReleaseCreditsKey())
+    assert!(df::exists(uid, ExtensionKey()), ENoCredits);
+    df::borrow(uid, ExtensionKey())
 }
 
 fun borrow_mut(uid: &mut UID): &mut ReleaseCredits {
-    assert!(df::exists(uid, ReleaseCreditsKey()), ENoCredits);
-    df::borrow_mut(uid, ReleaseCreditsKey())
+    assert!(df::exists(uid, ExtensionKey()), ENoCredits);
+    df::borrow_mut(uid, ExtensionKey())
 }
 
 fun borrow_mut_or_init(uid: &mut UID): &mut ReleaseCredits {
-    if (!df::exists(uid, ReleaseCreditsKey())) {
+    if (!df::exists(uid, ExtensionKey())) {
         df::add(
             uid,
-            ReleaseCreditsKey(),
+            ExtensionKey(),
             ReleaseCredits {
                 credits: vec_map::empty(),
             },
         );
     };
-    df::borrow_mut(uid, ReleaseCreditsKey())
+    df::borrow_mut(uid, ExtensionKey())
 }

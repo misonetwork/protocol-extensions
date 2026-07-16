@@ -50,7 +50,7 @@ public struct RecordingAttribution<phantom SourceShare, phantom GenerativeRecord
 
 /// Derivation key: at most one edge per (generated recording, source share
 /// type) pair.
-public struct RecordingAttributionKey<phantom SourceShare>() has copy, drop, store;
+public struct ExtensionKey<phantom SourceShare>() has copy, drop, store;
 
 // === Events ===
 
@@ -106,7 +106,7 @@ public fun new<
     let attribution = RecordingAttribution<SourceShare, GenerativeRecordingShare> {
         id: claim(
             generative_recording.uid_mut(cap),
-            RecordingAttributionKey<SourceShare>(),
+            ExtensionKey<SourceShare>(),
         ),
         source_recording_id,
         generative_recording_id,
@@ -210,5 +210,5 @@ public fun pending_rewards<SourceShare, GenerativeRecordingShare, Currency>(
 /// Deterministic address of the edge for a (generated recording, source
 /// share type) pair. Useful for off-chain discovery and enumeration.
 public fun derive_attribution_address<SourceShare>(generative_recording_id: ID): address {
-    derive_address(generative_recording_id, RecordingAttributionKey<SourceShare>())
+    derive_address(generative_recording_id, ExtensionKey<SourceShare>())
 }

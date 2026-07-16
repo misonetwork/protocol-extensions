@@ -37,7 +37,7 @@ const ETrackIndexOutOfBounds: u64 = 0;
 
 /// Dynamic-field key for a DSP's per-track links: a `PerTrack` of optional
 /// links, one slot per track. `phantom Data` gives each DSP its own array.
-public struct TrackLinksKey<phantom Data>() has copy, drop, store;
+public struct ExtensionKey<phantom Data>() has copy, drop, store;
 
 // === Events ===
 
@@ -106,7 +106,7 @@ public fun clear_track_link<Data: copy + drop + store>(
     cap: &ReleaseAdminCap,
     track_index: u64,
 ) {
-    if (df::exists(self.uid(), TrackLinksKey<Data>())) {
+    if (df::exists(self.uid(), ExtensionKey<Data>())) {
         assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
         let release_id = self.id();
         *borrow_track_links_mut<Data>(self.uid_mut(cap)).borrow_mut(track_index) = option::none();
@@ -119,8 +119,8 @@ public fun clear_track_links<Data: copy + drop + store>(
     self: &mut Release,
     cap: &ReleaseAdminCap,
 ) {
-    if (df::exists(self.uid(), TrackLinksKey<Data>())) {
-        let _: PerTrack<Option<DspLink<Data>>> = df::remove(self.uid_mut(cap), TrackLinksKey<Data>());
+    if (df::exists(self.uid(), ExtensionKey<Data>())) {
+        let _: PerTrack<Option<DspLink<Data>>> = df::remove(self.uid_mut(cap), ExtensionKey<Data>());
     }
 }
 
@@ -144,7 +144,7 @@ public fun track_link<Data: copy + drop + store>(
     track_index: u64,
 ): Option<DspLink<Data>> {
     let uid = self.uid();
-    if (!df::exists(uid, TrackLinksKey<Data>())) return option::none();
+    if (!df::exists(uid, ExtensionKey<Data>())) return option::none();
     assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
     *borrow_track_links<Data>(uid).borrow(track_index)
 }
@@ -154,24 +154,24 @@ public fun track_link<Data: copy + drop + store>(
 fun borrow_track_links<Data: copy + drop + store>(
     uid: &UID,
 ): &PerTrack<Option<DspLink<Data>>> {
-    df::borrow(uid, TrackLinksKey<Data>())
+    df::borrow(uid, ExtensionKey<Data>())
 }
 
 fun borrow_track_links_mut<Data: copy + drop + store>(
     uid: &mut UID,
 ): &mut PerTrack<Option<DspLink<Data>>> {
-    df::borrow_mut(uid, TrackLinksKey<Data>())
+    df::borrow_mut(uid, ExtensionKey<Data>())
 }
 
 fun track_links_mut_or_init<Data: copy + drop + store>(
     self: &mut Release,
     cap: &ReleaseAdminCap,
 ): &mut PerTrack<Option<DspLink<Data>>> {
-    if (!df::exists(self.uid(), TrackLinksKey<Data>())) {
+    if (!df::exists(self.uid(), ExtensionKey<Data>())) {
         // Size the array to the tracklist up front (all empty); the release's
         // track count is fixed at creation, so this stays valid.
         let tracks = per_track::filled(self, option::none<DspLink<Data>>());
-        df::add(self.uid_mut(cap), TrackLinksKey<Data>(), tracks);
+        df::add(self.uid_mut(cap), ExtensionKey<Data>(), tracks);
     };
     borrow_track_links_mut<Data>(self.uid_mut(cap))
 }

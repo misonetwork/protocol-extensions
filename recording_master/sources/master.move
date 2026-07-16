@@ -37,7 +37,7 @@ use sui::dynamic_field as df;
 ///   (e.g. the PCM digest) and is the stable, storage-independent handle — it
 ///   survives re-keying / re-encoding, so a distributor can bind to a master by
 ///   `(ingester, content_digest)` across key rotation.
-public struct MasterKey has copy, drop, store {
+public struct ExtensionKey has copy, drop, store {
     ingester: TypeName,
     content_digest: vector<u8>,
 }
@@ -57,7 +57,7 @@ public fun add<RecordingShare, CompositionShare, W: drop, M: store>(
 ) {
     df::add(
         self.uid_mut(cap),
-        MasterKey { ingester: type_name::with_defining_ids<W>(), content_digest },
+        ExtensionKey { ingester: type_name::with_defining_ids<W>(), content_digest },
         master,
     );
 }
@@ -74,7 +74,7 @@ public fun remove<RecordingShare, CompositionShare, M: store>(
     ingester: TypeName,
     content_digest: vector<u8>,
 ): M {
-    df::remove(self.uid_mut(cap), MasterKey { ingester, content_digest })
+    df::remove(self.uid_mut(cap), ExtensionKey { ingester, content_digest })
 }
 
 // === Reads ===
@@ -85,7 +85,7 @@ public fun borrow<RecordingShare, CompositionShare, M: store>(
     ingester: TypeName,
     content_digest: vector<u8>,
 ): &M {
-    df::borrow(self.uid(), MasterKey { ingester, content_digest })
+    df::borrow(self.uid(), ExtensionKey { ingester, content_digest })
 }
 
 /// Whether a master is attached under `(ingester, content_digest)`.
@@ -94,18 +94,18 @@ public fun exists_<RecordingShare, CompositionShare>(
     ingester: TypeName,
     content_digest: vector<u8>,
 ): bool {
-    df::exists(self.uid(), MasterKey { ingester, content_digest })
+    df::exists(self.uid(), ExtensionKey { ingester, content_digest })
 }
 
 // === Key helpers ===
 
-/// Builds a `MasterKey` — e.g. for clients constructing the dynamic-field id.
-public fun new_key(ingester: TypeName, content_digest: vector<u8>): MasterKey {
-    MasterKey { ingester, content_digest }
+/// Builds a `ExtensionKey` — e.g. for clients constructing the dynamic-field id.
+public fun new_key(ingester: TypeName, content_digest: vector<u8>): ExtensionKey {
+    ExtensionKey { ingester, content_digest }
 }
 
 /// The ingester namespace of a key.
-public fun key_ingester(key: &MasterKey): TypeName { key.ingester }
+public fun key_ingester(key: &ExtensionKey): TypeName { key.ingester }
 
 /// The content digest of a key.
-public fun key_content_digest(key: &MasterKey): vector<u8> { key.content_digest }
+public fun key_content_digest(key: &ExtensionKey): vector<u8> { key.content_digest }

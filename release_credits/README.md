@@ -2,7 +2,7 @@
 
 > First-party credits extension that records top-line billing (Primary / Featured artists) for a Miso `Release`.
 
-**Attaches to:** `miso::release::Release`, as a dynamic field on the release's `&mut UID`. The UID is obtained through `Release::uid_mut(cap)`, which is gated by a `ReleaseAdminCap`, so every mutation is authorized by the release's admin. The record is stored under the `ReleaseCreditsKey()` key.
+**Attaches to:** `miso::release::Release`, as a dynamic field on the release's `&mut UID`. The UID is obtained through `Release::uid_mut(cap)`, which is gated by a `ReleaseAdminCap`, so every mutation is authorized by the release's admin. The record is stored under the `ExtensionKey()` key.
 
 Attribution (top-line billing) is display-oriented and varies across platforms, so it lives in this extension rather than in immutable Miso core. Credits are pure attribution — they are not read by the protocol's economics. Because this is an extension, other parties may publish their own competing release-credits standard against the same `Release`; this is Miso's canonical one.
 

@@ -27,7 +27,7 @@ const ETrackIndexOutOfBounds: u64 = 2;
 // === Dynamic field key + value ===
 
 /// Dynamic-field key — one cover art record per release.
-public struct CoverArtKey() has copy, drop, store;
+public struct ExtensionKey() has copy, drop, store;
 
 /// The release's cover art: an album-level cover and per-track overrides. A
 /// track with no override inherits the album cover.
@@ -75,7 +75,7 @@ public fun unset_track_cover(self: &mut Release, cap: &ReleaseAdminCap, track_in
 
 /// Returns whether a cover art record is attached to this release.
 public fun has_cover_art(self: &Release): bool {
-    df::exists(self.uid(), CoverArtKey())
+    df::exists(self.uid(), ExtensionKey())
 }
 
 /// Returns the album-level cover (none if unset). Aborts if no cover art record
@@ -97,23 +97,23 @@ public fun track_cover(self: &Release, track_index: u64): Option<CoverArt> {
 // === Private Functions ===
 
 fun borrow(uid: &UID): &ReleaseCoverArt {
-    assert!(df::exists(uid, CoverArtKey()), ENoCoverArt);
-    df::borrow(uid, CoverArtKey())
+    assert!(df::exists(uid, ExtensionKey()), ENoCoverArt);
+    df::borrow(uid, ExtensionKey())
 }
 
 fun borrow_mut(uid: &mut UID): &mut ReleaseCoverArt {
-    assert!(df::exists(uid, CoverArtKey()), ENoCoverArt);
-    df::borrow_mut(uid, CoverArtKey())
+    assert!(df::exists(uid, ExtensionKey()), ENoCoverArt);
+    df::borrow_mut(uid, ExtensionKey())
 }
 
 fun borrow_mut_or_init(self: &mut Release, cap: &ReleaseAdminCap): &mut ReleaseCoverArt {
-    if (!df::exists(self.uid(), CoverArtKey())) {
+    if (!df::exists(self.uid(), ExtensionKey())) {
         // Size the per-track overrides to the tracklist up front (all empty);
         // the release's track count is fixed at creation, so this stays valid.
         let track_covers = per_track::filled(self, option::none<CoverArt>());
         df::add(
             self.uid_mut(cap),
-            CoverArtKey(),
+            ExtensionKey(),
             ReleaseCoverArt { cover: option::none(), track_covers },
         );
     };

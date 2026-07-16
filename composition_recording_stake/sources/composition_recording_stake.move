@@ -12,7 +12,7 @@
 /// stake against the recording's `RoyaltyPool` and claim its proportional
 /// royalties like any other share holder.
 ///
-/// The stake is keyed by `RecordingShareStakeKey<RecordingShare>`, so a
+/// The stake is keyed by `ExtensionKey<RecordingShare>`, so a
 /// composition holds one stake position per recording-share type. Every entry
 /// point takes the `Recording<RecordingShare, CompositionShare>` itself: this
 /// pins `RecordingShare` to a real recording (no fabricated share types) AND
@@ -38,7 +38,7 @@ const ENoStake: u64 = 1;
 // === Dynamic field key ===
 
 /// One stake position per recording-share type, attached to the composition.
-public struct RecordingShareStakeKey<phantom RecordingShare>() has copy, drop, store;
+public struct ExtensionKey<phantom RecordingShare>() has copy, drop, store;
 
 // === Public Functions ===
 
@@ -54,10 +54,10 @@ public fun create_stake<RecordingShare, CompositionShare>(
     ctx: &mut TxContext,
 ) {
     let uid = composition.uid_mut(cap);
-    assert!(!df::exists(uid, RecordingShareStakeKey<RecordingShare>()), EStakeExists);
+    assert!(!df::exists(uid, ExtensionKey<RecordingShare>()), EStakeExists);
     let balance = hikida::redeem_balance<RecordingShare>(uid, value);
     let stake = stake::new(balance, ctx);
-    df::add(uid, RecordingShareStakeKey<RecordingShare>(), stake);
+    df::add(uid, ExtensionKey<RecordingShare>(), stake);
 }
 
 /// Register the composition's stake against a recording's royalty pool so
@@ -68,8 +68,8 @@ public fun register<RecordingShare, CompositionShare, Currency>(
     pool: &mut RoyaltyPool<RecordingShare, Currency>,
 ) {
     let uid = composition.uid_mut(cap);
-    assert!(df::exists(uid, RecordingShareStakeKey<RecordingShare>()), ENoStake);
-    let stake: &mut Stake<RecordingShare> = df::borrow_mut(uid, RecordingShareStakeKey<RecordingShare>());
+    assert!(df::exists(uid, ExtensionKey<RecordingShare>()), ENoStake);
+    let stake: &mut Stake<RecordingShare> = df::borrow_mut(uid, ExtensionKey<RecordingShare>());
     pool.register_stake(stake);
 }
 
@@ -82,8 +82,8 @@ public fun claim<RecordingShare, CompositionShare, Currency>(
     ctx: &mut TxContext,
 ): Coin<Currency> {
     let uid = composition.uid_mut(cap);
-    assert!(df::exists(uid, RecordingShareStakeKey<RecordingShare>()), ENoStake);
-    let stake: &mut Stake<RecordingShare> = df::borrow_mut(uid, RecordingShareStakeKey<RecordingShare>());
+    assert!(df::exists(uid, ExtensionKey<RecordingShare>()), ENoStake);
+    let stake: &mut Stake<RecordingShare> = df::borrow_mut(uid, ExtensionKey<RecordingShare>());
     pool.claim_rewards(stake).into_coin(ctx)
 }
 
@@ -93,5 +93,5 @@ public fun claim<RecordingShare, CompositionShare, Currency>(
 public fun has_stake<RecordingShare, CompositionShare>(
     composition: &Composition<CompositionShare>,
 ): bool {
-    df::exists(composition.uid(), RecordingShareStakeKey<RecordingShare>())
+    df::exists(composition.uid(), ExtensionKey<RecordingShare>())
 }

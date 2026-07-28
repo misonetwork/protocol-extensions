@@ -1,5 +1,5 @@
 // Copyright (c) Miso Labs, Inc.
-// SPDX-License-Identifier: Apache 2.0
+// SPDX-License-Identifier: Apache-2.0
 
 /// Release revenue distributor for Miso.
 ///
@@ -25,9 +25,7 @@ use sui::coin::Coin;
 use sui::event::emit;
 use sui::transfer::Receiving;
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Events
-// ══════════════════════════════════════════════════════════════════════════════
+// === Events ===
 
 public struct ReleaseRevenueDistributedEvent<phantom Currency> has copy, drop {
     release_id: ID,
@@ -44,9 +42,7 @@ public struct ReleaseRevenueDistributionSummaryEvent<phantom Currency> has copy,
     remainder_value: u64,
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Public Functions
-// ══════════════════════════════════════════════════════════════════════════════
+// === Public Functions ===
 
 /// Redeem from the release's balance accumulator and distribute to tracks.
 public fun redeem_and_distribute_revenue<Currency>(

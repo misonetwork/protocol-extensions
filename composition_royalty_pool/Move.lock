@@ -4,6 +4,54 @@
 [move]
 version = 4
 
+[pinned.mainnet.MoveStdlib]
+source = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/move-stdlib", rev = "b9149cbf0b2cb9ae5ed830407a9b48c7ae3fd36c" }
+use_environment = "mainnet"
+manifest_digest = "C4FE4C91DE74CBF223B2E380AE40F592177D21870DC2D7EB6227D2D694E05363"
+deps = {}
+
+[pinned.mainnet.Sui]
+source = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "b9149cbf0b2cb9ae5ed830407a9b48c7ae3fd36c" }
+use_environment = "mainnet"
+manifest_digest = "CD547CB1ACCE0880C835DAED2D8FFCB91D56C833AE5240D3AA5B918398263195"
+deps = { MoveStdlib = "MoveStdlib" }
+
+[pinned.mainnet.bps]
+source = { git = "https://github.com/unconfirmedlabs/bps.git", subdir = ".", rev = "26fa571e3d8fc79125e6a50f5b735c939a5251f6" }
+use_environment = "mainnet"
+manifest_digest = "E41BBD67BE8940D26C79D78B028477EF5B33BA217A1282C78ACB344CF8A5ECF6"
+deps = { std = "MoveStdlib", sui = "Sui" }
+
+[pinned.mainnet.composition_royalty_pool]
+source = { root = true }
+use_environment = "mainnet"
+manifest_digest = "863423371DB4300B3D398D29C1815019F91B4510E0497EDB27640F687EEB1BB2"
+deps = { hikida = "hikida", miso = "miso", royalty_pool = "royalty_pool", std = "MoveStdlib", sui = "Sui" }
+
+[pinned.mainnet.hikida]
+source = { git = "https://github.com/unconfirmedlabs/hikida.git", subdir = ".", rev = "e88c6fa88348bc2764823cf3666d7ca5e08b2f4f" }
+use_environment = "mainnet"
+manifest_digest = "E41BBD67BE8940D26C79D78B028477EF5B33BA217A1282C78ACB344CF8A5ECF6"
+deps = { std = "MoveStdlib", sui = "Sui" }
+
+[pinned.mainnet.miso]
+source = { local = "../../miso-protocol/move" }
+use_environment = "mainnet"
+manifest_digest = "793C61B12C8AE1BA1CA5F802C603CFD5DAEAFACBC9558CD35EDF73845BC9D96A"
+deps = { bps = "bps", miso_share = "miso_share", std = "MoveStdlib", sui = "Sui" }
+
+[pinned.mainnet.miso_share]
+source = { local = "../../miso-protocol/move/lib/share" }
+use_environment = "mainnet"
+manifest_digest = "E41BBD67BE8940D26C79D78B028477EF5B33BA217A1282C78ACB344CF8A5ECF6"
+deps = { std = "MoveStdlib", sui = "Sui" }
+
+[pinned.mainnet.royalty_pool]
+source = { local = "../lib/royalty_pool" }
+use_environment = "mainnet"
+manifest_digest = "8B9744099FF2539F66AC9E49EDE515B561EC9A06F5A72FFA326AC9B52D97E8E6"
+deps = { hikida = "hikida", std = "MoveStdlib", sui = "Sui" }
+
 [pinned.testnet.MoveStdlib]
 source = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/move-stdlib", rev = "b124567746b3a78a7e294ac2de265f693401ec9d" }
 use_environment = "testnet"

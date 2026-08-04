@@ -10,4 +10,4 @@ authors = ["Miso Labs, Inc. (build@miso.network)"]
 # `party_profile` uses.
 [dependencies]
 miso = { local = "../../miso-protocol/move" }
-language_code = { git = "https://github.com/unconfirmedlabs/language_code.git", rev = "17a5e84ac77cf3be6f8a72eddb3c0570c455c37f" }
+language_code = { git = "https://github.com/unconfirmedlabs/language_code.git", rev = "c5973df88fa9472fa706ef23c96c69464bf81a98" }

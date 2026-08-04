@@ -17,7 +17,7 @@ manifest_digest = "CD547CB1ACCE0880C835DAED2D8FFCB91D56C833AE5240D3AA5B918398263
 deps = { MoveStdlib = "MoveStdlib" }
 
 [pinned.mainnet.bps]
-source = { git = "https://github.com/unconfirmedlabs/bps.git", subdir = ".", rev = "d1c07015b98c407e556d014eaa1f4991bd081372" }
+source = { git = "https://github.com/unconfirmedlabs/bps.git", subdir = ".", rev = "26fa571e3d8fc79125e6a50f5b735c939a5251f6" }
 use_environment = "mainnet"
 manifest_digest = "E41BBD67BE8940D26C79D78B028477EF5B33BA217A1282C78ACB344CF8A5ECF6"
 deps = { std = "MoveStdlib", sui = "Sui" }
@@ -25,7 +25,7 @@ deps = { std = "MoveStdlib", sui = "Sui" }
 [pinned.mainnet.miso]
 source = { local = "../../miso-protocol/move" }
 use_environment = "mainnet"
-manifest_digest = "EE9FBC46930F97AA9AB1533D0A9154C0828AE0F779AB7E1D9347C98D6913B87B"
+manifest_digest = "793C61B12C8AE1BA1CA5F802C603CFD5DAEAFACBC9558CD35EDF73845BC9D96A"
 deps = { bps = "bps", miso_share = "miso_share", std = "MoveStdlib", sui = "Sui" }
 
 [pinned.mainnet.miso_share]

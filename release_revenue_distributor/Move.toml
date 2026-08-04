@@ -6,4 +6,4 @@ authors = ["Miso Labs, Inc. (build@miso.network)"]
 
 [dependencies]
 miso = { local = "../../miso-protocol/move" }
-hikida = { git = "https://github.com/unconfirmedlabs/hikida.git", rev = "bc8e04947f5728328948df584b74ae8b03d17ef8" }
+hikida = { git = "https://github.com/unconfirmedlabs/hikida.git", rev = "e88c6fa88348bc2764823cf3666d7ca5e08b2f4f" }

@@ -22,7 +22,7 @@ fun new_rec(ctx: &mut TxContext): (
     recording::Recording<REC, COMP>,
     recording::RecordingAdminCap<REC>,
 ) {
-    recording::new_for_testing<REC, COMP>(b"Take 1".to_string(), ctx)
+    recording::new_for_testing<REC, COMP>(ctx)
 }
 
 fun lang(code: vector<u8>): language_code::LanguageCode {
@@ -106,7 +106,7 @@ fun instrumental_is_distinct_from_absent_and_from_sung() {
 fun set_instrumental_matches_an_explicit_empty_vector() {
     let ctx = &mut tx_context::dummy();
     let (mut a, a_cap) = new_rec(ctx);
-    let (mut b, b_cap) = recording::new_for_testing<OTHER_REC, COMP>(b"Take 2".to_string(), ctx);
+    let (mut b, b_cap) = recording::new_for_testing<OTHER_REC, COMP>(ctx);
 
     rl::set_instrumental(&mut a, &a_cap);
     rl::set_languages(&mut b, &b_cap, vector[]);
@@ -178,7 +178,7 @@ fun unset_emits_only_when_something_was_removed() {
 fun languages_are_per_recording() {
     let ctx = &mut tx_context::dummy();
     let (mut a, a_cap) = new_rec(ctx);
-    let (b, b_cap) = recording::new_for_testing<OTHER_REC, COMP>(b"Take 2".to_string(), ctx);
+    let (b, b_cap) = recording::new_for_testing<OTHER_REC, COMP>(ctx);
 
     rl::set_languages(&mut a, &a_cap, vector[lang(b"en")]);
 

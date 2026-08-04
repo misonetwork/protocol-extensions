@@ -26,7 +26,6 @@ fun new_recording<Share>(
     ctx: &mut TxContext,
 ): (Recording<Share, COMPOSITION>, RecordingAdminCap<Share>) {
     recording::new_for_testing<Share, COMPOSITION>(
-        b"Recording".to_string(),
         ctx,
     )
 }

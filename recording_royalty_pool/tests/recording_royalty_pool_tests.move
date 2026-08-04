@@ -25,7 +25,6 @@ fun new_recording_fixture(
     scenario: &mut Scenario,
 ): (Recording<TEST_SHARE, TEST_COMP_SHARE>, RecordingAdminCap<TEST_SHARE>) {
     recording::new_for_testing<TEST_SHARE, TEST_COMP_SHARE>(
-        b"Test Recording".to_string(),
         scenario.ctx(),
     )
 }

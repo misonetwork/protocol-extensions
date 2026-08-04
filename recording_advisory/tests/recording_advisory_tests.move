@@ -23,7 +23,7 @@ fun new_rec(ctx: &mut TxContext): (
     recording::Recording<REC, COMP>,
     recording::RecordingAdminCap<REC>,
 ) {
-    recording::new_for_testing<REC, COMP>(b"Take 1".to_string(), ctx)
+    recording::new_for_testing<REC, COMP>(ctx)
 }
 
 #[test]
@@ -143,7 +143,7 @@ fun unset_emits_only_when_something_was_removed() {
 fun ratings_are_per_recording() {
     let ctx = &mut tx_context::dummy();
     let (mut a, a_cap) = new_rec(ctx);
-    let (b, b_cap) = recording::new_for_testing<OTHER_REC, COMP>(b"Take 2".to_string(), ctx);
+    let (b, b_cap) = recording::new_for_testing<OTHER_REC, COMP>(ctx);
 
     adv::set_rating(&mut a, &a_cap, adv::explicit());
 

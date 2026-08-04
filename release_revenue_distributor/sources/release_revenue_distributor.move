@@ -29,8 +29,10 @@ use sui::transfer::Receiving;
 
 public struct ReleaseRevenueDistributedEvent<phantom Currency> has copy, drop {
     release_id: ID,
-    disc_idx: u64,
-    track_idx: u64,
+    /// Position in the release's flat, ordered tracklist. Kept in the payload
+    /// because a recording may appear on more than one track, so
+    /// `recording_id` alone does not identify which track paid.
+    track_index: u64,
     recording_id: ID,
     recording_split_value: u64,
 }
@@ -82,38 +84,32 @@ public fun distribute_revenue<Currency>(
 ) {
     let total_input_value = revenue.value();
     let release_id = release.id();
-    let discs = release.discs();
+    let tracks = release.tracks();
     let mut total_distributed_value: u64 = 0;
 
-    discs.length().do!(|disc_idx| {
-        let disc = &discs[disc_idx];
-        let tracks = disc.tracks();
+    tracks.length().do!(|track_index| {
+        let track = &tracks[track_index];
+        let track_split_bps = track.split_bps();
 
-        tracks.length().do!(|track_idx| {
-            let track = &tracks[track_idx];
-            let track_split_bps = track.split_bps();
+        if (track_split_bps.value() > 0) {
+            // bps's `calc` was renamed to `apply` in the upstream bps
+            // package. Same semantics: scale `amount` by the BPS rate.
+            let rec_split_value = track_split_bps.apply(total_input_value);
+            let rec_split_balance = revenue.split(rec_split_value);
 
-            if (track_split_bps.value() > 0) {
-                // bps's `calc` was renamed to `apply` in the upstream bps
-                // package. Same semantics: scale `amount` by the BPS rate.
-                let rec_split_value = track_split_bps.apply(total_input_value);
-                let rec_split_balance = revenue.split(rec_split_value);
+            let recording_id = track.recording_id();
 
-                let recording_id = track.recording_id();
+            total_distributed_value = total_distributed_value + rec_split_value;
 
-                total_distributed_value = total_distributed_value + rec_split_value;
+            emit(ReleaseRevenueDistributedEvent<Currency> {
+                release_id,
+                track_index,
+                recording_id,
+                recording_split_value: rec_split_value,
+            });
 
-                emit(ReleaseRevenueDistributedEvent<Currency> {
-                    release_id,
-                    disc_idx,
-                    track_idx,
-                    recording_id,
-                    recording_split_value: rec_split_value,
-                });
-
-                rec_split_balance.send_funds(recording_id.to_address());
-            };
-        });
+            rec_split_balance.send_funds(recording_id.to_address());
+        };
     });
 
     let remainder_value = revenue.value();

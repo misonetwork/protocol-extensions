@@ -7,7 +7,6 @@ module release_genre::release_genre_tests;
 use genre::genre as g;
 use genre::genre::{GenreRegistry, GenreRegistryCap, Genre};
 use release_genre::release_genre as rg;
-use miso::disc;
 use miso::release::{Self, Release, ReleaseAdminCap};
 use miso::test_helpers;
 use miso::track;
@@ -29,19 +28,16 @@ fun create_genre(scenario: &Scenario, name: vector<u8>): ID {
     id
 }
 
-// A 2-track release (single disc): tracklist indices 0, 1.
+// A 2-track release: flat tracklist indices 0, 1.
 fun mk_release(ctx: &mut TxContext): (Release, ReleaseAdminCap) {
     let rel_id = test_helpers::fake_id(ctx);
     let r0 = test_helpers::fake_id(ctx);
     let r1 = test_helpers::fake_id(ctx);
-    let d = disc::new(
-        vector[
-            track::new_for_testing(r0, rel_id, 5000),
-            track::new_for_testing(r1, rel_id, 5000),
-        ],
-        option::none(),
-    );
-    release::new_for_testing(b"Album".to_string(), vector[d], ctx)
+    let tracks = vector[
+        track::new_for_testing(r0, rel_id, 5000),
+        track::new_for_testing(r1, rel_id, 5000),
+    ];
+    release::new_for_testing(b"Album".to_string(), tracks, ctx)
 }
 
 // === Album-level assignment ===

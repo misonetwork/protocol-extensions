@@ -20,7 +20,7 @@ fun setup(
     ctx: &mut TxContext,
 ): (Composition<COMP>, CompositionAdminCap<COMP>, Recording<REC, COMP>, RecordingAdminCap<REC>) {
     let (comp, comp_cap) = composition::new_for_testing<COMP>(b"Song".to_string(), 1500, ctx);
-    let (rec, rec_cap) = recording::new_for_testing<REC, COMP>(b"Take 1".to_string(), ctx);
+    let (rec, rec_cap) = recording::new_for_testing<REC, COMP>(ctx);
     (comp, comp_cap, rec, rec_cap)
 }
 
@@ -81,7 +81,7 @@ fun register_rejects_pool_from_other_recording() {
     let (mut comp, comp_cap, rec1, rec_cap1) = setup(ctx);
     // A second recording of the same share type (only constructible in tests),
     // with its own pool — same type as rec1's pool but derived from rec2.
-    let (mut rec2, rec_cap2) = recording::new_for_testing<REC, COMP>(b"Other".to_string(), ctx);
+    let (mut rec2, rec_cap2) = recording::new_for_testing<REC, COMP>(ctx);
     let mut wrong_pool = pool::new<REC, USD>(rec2.uid_mut(&rec_cap2));
 
     // Registering rec1's stake against rec2's pool must abort (EPoolNotForRecording).

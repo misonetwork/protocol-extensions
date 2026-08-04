@@ -25,7 +25,7 @@ fun new_rec(ctx: &mut TxContext): (
     recording::Recording<REC, COMP>,
     recording::RecordingAdminCap<REC>,
 ) {
-    recording::new_for_testing<REC, COMP>(b"Take 1".to_string(), ctx)
+    recording::new_for_testing<REC, COMP>(ctx)
 }
 
 #[test]
@@ -94,7 +94,7 @@ fun replacing_encrypted_with_plain_clears_encryption() {
 fun references_are_per_recording() {
     let ctx = &mut tx_context::dummy();
     let (mut a, a_cap) = new_rec(ctx);
-    let (b, b_cap) = recording::new_for_testing<OTHER_REC, COMP>(b"Take 2".to_string(), ctx);
+    let (b, b_cap) = recording::new_for_testing<OTHER_REC, COMP>(ctx);
 
     mref::set_master_reference(&mut a, &a_cap, walrus_data::new_blob(9));
 

@@ -4,7 +4,6 @@
 #[test_only]
 module release_kind::release_kind_tests;
 
-use miso::disc;
 use miso::release::{Self, Release, ReleaseAdminCap};
 use miso::test_helpers;
 use miso::track;
@@ -22,8 +21,8 @@ const EUnauthorized: u64 = 0;
 fun mk_release(ctx: &mut TxContext): (Release, ReleaseAdminCap) {
     let rel_id = test_helpers::fake_id(ctx);
     let r0 = test_helpers::fake_id(ctx);
-    let d = disc::new(vector[track::new_for_testing(r0, rel_id, 10000)], option::none());
-    release::new_for_testing(b"Some Record".to_string(), vector[d], ctx)
+    let tracks = vector[track::new_for_testing(r0, rel_id, 10000)];
+    release::new_for_testing(b"Some Record".to_string(), tracks, ctx)
 }
 
 #[test]

@@ -16,7 +16,7 @@ public struct COMP {}
 #[test]
 fun set_replace_unset_lifecycle() {
     let ctx = &mut tx_context::dummy();
-    let (mut rec, rec_cap) = recording::new_for_testing<REC, COMP>(b"Take 1".to_string(), ctx);
+    let (mut rec, rec_cap) = recording::new_for_testing<REC, COMP>(ctx);
 
     assert!(!rp::has_preview(&rec));
 
@@ -42,7 +42,7 @@ fun set_replace_unset_lifecycle() {
 #[test]
 fun encrypted_blob_is_accepted() {
     let ctx = &mut tx_context::dummy();
-    let (mut rec, rec_cap) = recording::new_for_testing<REC, COMP>(b"Take 1".to_string(), ctx);
+    let (mut rec, rec_cap) = recording::new_for_testing<REC, COMP>(ctx);
 
     rp::set_preview(&mut rec, &rec_cap, walrus_data::new_encrypted_blob(3, b"dek"));
     assert!(rp::preview(&rec).is_encrypted());
@@ -54,7 +54,7 @@ fun encrypted_blob_is_accepted() {
 #[test, expected_failure(abort_code = 1, location = recording_preview::recording_preview)]
 fun preview_aborts_when_unset() {
     let ctx = &mut tx_context::dummy();
-    let (rec, rec_cap) = recording::new_for_testing<REC, COMP>(b"Take 1".to_string(), ctx);
+    let (rec, rec_cap) = recording::new_for_testing<REC, COMP>(ctx);
 
     let _ = rp::preview(&rec);
 
@@ -66,7 +66,7 @@ fun preview_aborts_when_unset() {
 #[test, expected_failure(abort_code = 0, location = ori::walrus_data)]
 fun set_preview_rejects_quilt_patch() {
     let ctx = &mut tx_context::dummy();
-    let (mut rec, rec_cap) = recording::new_for_testing<REC, COMP>(b"Take 1".to_string(), ctx);
+    let (mut rec, rec_cap) = recording::new_for_testing<REC, COMP>(ctx);
 
     rp::set_preview(&mut rec, &rec_cap, walrus_data::new_quilt_patch(1, 1, 0, 1));
 

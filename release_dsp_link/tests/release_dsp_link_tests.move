@@ -6,7 +6,6 @@ module release_dsp_link::release_dsp_link_tests;
 
 use dsp_link::dsp_link as dl;
 use release_dsp_link::release_dsp_link as links;
-use miso::disc;
 use miso::release::{Self, Release, ReleaseAdminCap};
 use miso::test_helpers;
 use miso::track;
@@ -21,22 +20,18 @@ public struct TestDsp has copy, drop, store {
     id: u64,
 }
 
-// A 3-track release across 2 discs. Disc-major tracklist order: (d0t0, d0t1,
-// d1t0) → indices 0, 1, 2.
+// A 3-track release: flat tracklist indices 0, 1, 2.
 fun mk_release(ctx: &mut TxContext): (Release, ReleaseAdminCap) {
     let rel_id = test_helpers::fake_id(ctx);
     let r0 = test_helpers::fake_id(ctx);
     let r1 = test_helpers::fake_id(ctx);
     let r2 = test_helpers::fake_id(ctx);
-    let d0 = disc::new(
-        vector[
-            track::new_for_testing(r0, rel_id, 4000),
-            track::new_for_testing(r1, rel_id, 3000),
-        ],
-        option::none(),
-    );
-    let d1 = disc::new(vector[track::new_for_testing(r2, rel_id, 3000)], option::none());
-    release::new_for_testing(b"Album".to_string(), vector[d0, d1], ctx)
+    let tracks = vector[
+        track::new_for_testing(r0, rel_id, 4000),
+        track::new_for_testing(r1, rel_id, 3000),
+        track::new_for_testing(r2, rel_id, 3000),
+    ];
+    release::new_for_testing(b"Album".to_string(), tracks, ctx)
 }
 
 #[test]

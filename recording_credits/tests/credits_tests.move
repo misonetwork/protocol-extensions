@@ -18,7 +18,7 @@ const ARTIST: address = @0xA1;
 fun mk_recording(
     ctx: &mut TxContext,
 ): (Recording<RecordingShare, CompositionShare>, RecordingAdminCap<RecordingShare>) {
-    recording::new_for_testing(b"Song".to_string(), ctx)
+    recording::new_for_testing(ctx)
 }
 
 fun mk_party(name: vector<u8>, ctx: &mut TxContext): (Party, PartyAdminCap) {

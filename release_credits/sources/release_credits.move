@@ -23,6 +23,7 @@ use miso_credit::credit::Credit;
 use partyos::party::Party;
 use release_credits::release_party_role::ReleasePartyRole;
 use sui::dynamic_field as df;
+use sui::event::emit;
 use sui::vec_map::{Self, VecMap};
 
 // === Constants ===
@@ -62,6 +63,25 @@ public struct ReleaseCredits has store {
     credits: VecMap<ID, Credit<ReleasePartyRole>>,
 }
 
+// === Events ===
+
+/// Emitted when a credit is added for a party on the release. Carries the
+/// full credit record so an indexer can upsert its row without re-reading the
+/// credits dynamic field.
+public struct CreditAddedEvent has copy, drop {
+    release_id: ID,
+    party_id: ID,
+    credit: Credit<ReleasePartyRole>,
+}
+
+/// Emitted when a party's credit is removed from the release. Carries the
+/// removed record so an indexer can delete its row without re-reading state.
+public struct CreditRemovedEvent has copy, drop {
+    release_id: ID,
+    party_id: ID,
+    credit: Credit<ReleasePartyRole>,
+}
+
 // === Write API ===
 
 /// Adds a credit for a party on the release, lazily creating the credits record
@@ -76,18 +96,24 @@ public fun add_credit(
 ) {
     assert!(credit.roles().length() == CREDIT_ROLE_COUNT, EInvalidCreditRoleCount);
 
+    let release_id = self.id();
     let party_id = party.id();
     let rc = borrow_mut_or_init(self.uid_mut(cap));
     assert!(rc.credits.length() < MAX_CREDITS, EMaxCreditsExceeded);
     assert!(!rc.credits.contains(&party_id), EPartyAlreadyCredited);
     rc.credits.insert(party_id, credit);
+
+    emit(CreditAddedEvent { release_id, party_id, credit });
 }
 
 /// Removes a party's credit. Requires the release's admin capability.
 public fun remove_credit(self: &mut Release, cap: &ReleaseAdminCap, party_id: ID) {
+    let release_id = self.id();
     let rc = borrow_mut(self.uid_mut(cap));
     assert!(rc.credits.contains(&party_id), EPartyNotCredited);
-    let (_, _) = rc.credits.remove(&party_id);
+    let (_, credit) = rc.credits.remove(&party_id);
+
+    emit(CreditRemovedEvent { release_id, party_id, credit });
 }
 
 // === Public View Functions ===
@@ -125,4 +151,16 @@ fun borrow_mut_or_init(uid: &mut UID): &mut ReleaseCredits {
         );
     };
     df::borrow_mut(uid, ExtensionKey())
+}
+
+// === Test Only ===
+
+#[test_only]
+public fun added_event_fields(e: &CreditAddedEvent): (ID, ID, Credit<ReleasePartyRole>) {
+    (e.release_id, e.party_id, e.credit)
+}
+
+#[test_only]
+public fun removed_event_fields(e: &CreditRemovedEvent): (ID, ID, Credit<ReleasePartyRole>) {
+    (e.release_id, e.party_id, e.credit)
 }

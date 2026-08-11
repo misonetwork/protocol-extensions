@@ -8,6 +8,7 @@ use miso::recording;
 use ori::walrus_data;
 use recording_preview::recording_preview as rp;
 use std::unit_test::{assert_eq, destroy};
+use sui::event;
 
 // Phantom marker types for the share parameters.
 public struct REC {}
@@ -46,6 +47,57 @@ fun encrypted_blob_is_accepted() {
 
     rp::set_preview(&mut rec, &rec_cap, walrus_data::new_encrypted_blob(3, b"dek"));
     assert!(rp::preview(&rec).is_encrypted());
+
+    destroy(rec);
+    destroy(rec_cap);
+}
+
+#[test]
+fun set_emits_the_preview_and_recording() {
+    let ctx = &mut tx_context::dummy();
+    let (mut rec, rec_cap) = recording::new_for_testing<REC, COMP>(ctx);
+    let rec_id = object::id(&rec);
+
+    rp::set_preview(&mut rec, &rec_cap, walrus_data::new_blob(1));
+
+    let events = event::events_by_type<rp::PreviewSetEvent>();
+    assert_eq!(events.length(), 1);
+    let (id, preview) = rp::set_event_fields(&events[0]);
+    assert_eq!(id, rec_id);
+    assert_eq!(preview.blob_id(), 1);
+    assert!(!preview.is_encrypted());
+
+    // Replacing emits a fresh event carrying the new reference, not the old.
+    rp::set_preview(&mut rec, &rec_cap, walrus_data::new_encrypted_blob(3, b"dek"));
+
+    let events = event::events_by_type<rp::PreviewSetEvent>();
+    assert_eq!(events.length(), 2);
+    let (id, preview) = rp::set_event_fields(&events[1]);
+    assert_eq!(id, rec_id);
+    assert_eq!(preview.blob_id(), 3);
+    assert!(preview.is_encrypted());
+    assert_eq!(*preview.sealed_dek(), b"dek");
+
+    destroy(rec);
+    destroy(rec_cap);
+}
+
+#[test]
+fun unset_emits_only_when_something_was_removed() {
+    let ctx = &mut tx_context::dummy();
+    let (mut rec, rec_cap) = recording::new_for_testing<REC, COMP>(ctx);
+    let rec_id = object::id(&rec);
+
+    // Nothing attached — a no-op must stay silent rather than announce a change.
+    rp::unset_preview(&mut rec, &rec_cap);
+    assert_eq!(event::events_by_type<rp::PreviewUnsetEvent>().length(), 0);
+
+    rp::set_preview(&mut rec, &rec_cap, walrus_data::new_blob(1));
+    rp::unset_preview(&mut rec, &rec_cap);
+
+    let events = event::events_by_type<rp::PreviewUnsetEvent>();
+    assert_eq!(events.length(), 1);
+    assert_eq!(rp::unset_event_recording_id(&events[0]), rec_id);
 
     destroy(rec);
     destroy(rec_cap);

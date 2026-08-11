@@ -10,6 +10,7 @@ use partyos::party::{Self, Party, PartyAdminCap};
 use release_credits::release_credits as credits;
 use release_credits::release_party_role as rpr;
 use std::unit_test::{assert_eq, destroy};
+use sui::event;
 use sui::test_scenario;
 
 const ARTIST: address = @0xA1;
@@ -111,4 +112,67 @@ fun remove_credit_round_trip() {
 
     destroy(rel); destroy(cap); destroy(p); destroy(_pc);
     ts.end();
+}
+
+#[test]
+fun add_credit_emits_the_full_record() {
+    let ctx = &mut tx_context::dummy();
+    let (mut rel, cap) = mk_release(ctx);
+    let rel_id = object::id(&rel);
+    let (p1, p1c) = mk_party(b"Alice", ctx);
+    let (p2, p2c) = mk_party(b"Bob", ctx);
+
+    credits::add_credit(
+        &mut rel,
+        &cap,
+        &p1,
+        credit::new(b"Alice".to_string(), vector[rpr::new_primary_role()]),
+    );
+    credits::add_credit(
+        &mut rel,
+        &cap,
+        &p2,
+        credit::new(b"Bob".to_string(), vector[rpr::new_featured_role()]),
+    );
+
+    let events = event::events_by_type<credits::CreditAddedEvent>();
+    assert_eq!(events.length(), 2);
+
+    let (release_id, party_id, credit) = credits::added_event_fields(&events[0]);
+    assert_eq!(release_id, rel_id);
+    assert_eq!(party_id, p1.id());
+    assert_eq!(credit, credit::new(b"Alice".to_string(), vector[rpr::new_primary_role()]));
+
+    let (release_id, party_id, credit) = credits::added_event_fields(&events[1]);
+    assert_eq!(release_id, rel_id);
+    assert_eq!(party_id, p2.id());
+    assert_eq!(credit, credit::new(b"Bob".to_string(), vector[rpr::new_featured_role()]));
+
+    destroy(rel); destroy(cap); destroy(p1); destroy(p1c); destroy(p2); destroy(p2c);
+}
+
+#[test]
+fun remove_credit_emits_the_removed_record() {
+    let ctx = &mut tx_context::dummy();
+    let (mut rel, cap) = mk_release(ctx);
+    let rel_id = object::id(&rel);
+    let (p, pc) = mk_party(b"Alice", ctx);
+    let pid = p.id();
+
+    credits::add_credit(
+        &mut rel,
+        &cap,
+        &p,
+        credit::new(b"Alice".to_string(), vector[rpr::new_primary_role()]),
+    );
+    credits::remove_credit(&mut rel, &cap, pid);
+
+    let events = event::events_by_type<credits::CreditRemovedEvent>();
+    assert_eq!(events.length(), 1);
+    let (release_id, party_id, credit) = credits::removed_event_fields(&events[0]);
+    assert_eq!(release_id, rel_id);
+    assert_eq!(party_id, pid);
+    assert_eq!(credit, credit::new(b"Alice".to_string(), vector[rpr::new_primary_role()]));
+
+    destroy(rel); destroy(cap); destroy(p); destroy(pc);
 }

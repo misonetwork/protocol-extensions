@@ -9,13 +9,14 @@
 /// release (the consumer object) rather than the recording. A track's effective
 /// cover resolves as: its per-track override if set, else the album cover. The
 /// overrides are a `PerTrack<Option<CoverArt>>` — one slot per track, aligned to
-/// the release's tracklist by construction (sized from `total_tracks()`).
+/// the release's tracklist by construction (sized from `tracks().length()`).
 module release_cover_art::release_cover_art;
 
 use cover_art::cover_art::CoverArt;
 use miso::release::{Release, ReleaseAdminCap};
 use per_track::per_track::{Self, PerTrack};
 use sui::dynamic_field as df;
+use sui::event::emit;
 
 // === Errors ===
 
@@ -36,18 +37,53 @@ public struct ReleaseCoverArt has store {
     track_covers: PerTrack<Option<CoverArt>>,
 }
 
+// === Events ===
+
+/// Emitted when the album-level cover is set or replaced.
+public struct CoverSetEvent has copy, drop {
+    release_id: ID,
+    /// The full cover art record that was written.
+    art: CoverArt,
+}
+
+/// Emitted when the album-level cover is removed. Per-track overrides are
+/// unaffected.
+public struct CoverUnsetEvent has copy, drop {
+    release_id: ID,
+}
+
+/// Emitted when a track's cover override is set or replaced.
+public struct TrackCoverSetEvent has copy, drop {
+    release_id: ID,
+    track_index: u64,
+    /// The full cover art record that was written.
+    art: CoverArt,
+}
+
+/// Emitted when a track's cover override is removed — the track falls back to
+/// the album cover.
+public struct TrackCoverUnsetEvent has copy, drop {
+    release_id: ID,
+    track_index: u64,
+}
+
 // === Write API ===
 
 /// Sets (or replaces) the album-level cover.
 public fun set_cover(self: &mut Release, cap: &ReleaseAdminCap, art: CoverArt) {
+    let release_id = self.id();
     borrow_mut_or_init(self, cap).cover.swap_or_fill(art);
+    emit(CoverSetEvent { release_id, art });
 }
 
-/// Removes the album-level cover, if any. Per-track overrides are untouched.
+/// Removes the album-level cover. Per-track overrides are untouched. Aborts
+/// with `ENoCoverArt` if no cover art record is attached.
 public fun unset_cover(self: &mut Release, cap: &ReleaseAdminCap) {
-    if (has_cover_art(self)) {
-        borrow_mut(self.uid_mut(cap)).cover = option::none();
-    }
+    let release_id = self.id();
+    let uid = self.uid_mut(cap); // cap gate first, on every path
+    assert!(df::exists(uid, ExtensionKey()), ENoCoverArt);
+    df::borrow_mut<ExtensionKey, ReleaseCoverArt>(uid, ExtensionKey()).cover = option::none();
+    emit(CoverUnsetEvent { release_id });
 }
 
 /// Sets (or replaces) the cover override for a specific track (by tracklist
@@ -58,17 +94,24 @@ public fun set_track_cover(
     track_index: u64,
     art: CoverArt,
 ) {
-    assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
+    assert!(track_index < self.tracks().length(), ETrackIndexOutOfBounds);
+    let release_id = self.id();
     borrow_mut_or_init(self, cap).track_covers.borrow_mut(track_index).swap_or_fill(art);
+    emit(TrackCoverSetEvent { release_id, track_index, art });
 }
 
-/// Removes the cover override for a specific track, if any — the track then
-/// falls back to the album cover.
+/// Removes the cover override for a specific track — the track then falls
+/// back to the album cover. Aborts if no cover art record is attached, or if
+/// the index is out of range for the release.
 public fun unset_track_cover(self: &mut Release, cap: &ReleaseAdminCap, track_index: u64) {
-    if (has_cover_art(self)) {
-        assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
-        *borrow_mut(self.uid_mut(cap)).track_covers.borrow_mut(track_index) = option::none();
-    }
+    let total_tracks = self.tracks().length();
+    let release_id = self.id();
+    let uid = self.uid_mut(cap); // cap gate first, on every path
+    assert!(df::exists(uid, ExtensionKey()), ENoCoverArt);
+    assert!(track_index < total_tracks, ETrackIndexOutOfBounds);
+    let record = df::borrow_mut<ExtensionKey, ReleaseCoverArt>(uid, ExtensionKey());
+    *record.track_covers.borrow_mut(track_index) = option::none();
+    emit(TrackCoverUnsetEvent { release_id, track_index });
 }
 
 // === Public View Functions ===
@@ -88,7 +131,7 @@ public fun cover(self: &Release): &Option<CoverArt> {
 /// the album cover (which may itself be none). Aborts if no cover art record is
 /// attached, or if the track index is out of range.
 public fun track_cover(self: &Release, track_index: u64): Option<CoverArt> {
-    assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
+    assert!(track_index < self.tracks().length(), ETrackIndexOutOfBounds);
     let record = borrow(self.uid());
     let override = record.track_covers.borrow(track_index);
     if (override.is_some()) *override else record.cover
@@ -118,4 +161,24 @@ fun borrow_mut_or_init(self: &mut Release, cap: &ReleaseAdminCap): &mut ReleaseC
         );
     };
     borrow_mut(self.uid_mut(cap))
+}
+
+// === Test Only ===
+
+#[test_only]
+public fun cover_set_event_fields(e: &CoverSetEvent): (ID, CoverArt) {
+    (e.release_id, e.art)
+}
+
+#[test_only]
+public fun cover_unset_event_release_id(e: &CoverUnsetEvent): ID { e.release_id }
+
+#[test_only]
+public fun track_cover_set_event_fields(e: &TrackCoverSetEvent): (ID, u64, CoverArt) {
+    (e.release_id, e.track_index, e.art)
+}
+
+#[test_only]
+public fun track_cover_unset_event_fields(e: &TrackCoverUnsetEvent): (ID, u64) {
+    (e.release_id, e.track_index)
 }

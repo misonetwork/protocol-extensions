@@ -8,7 +8,8 @@
 /// recording's shares to the composition object's address balance. This
 /// extension lets the `CompositionAdminCap` holder pull those shares out of the
 /// address balance, wrap them in a `royalty_pool::stake::Stake`, and attach it
-/// to the composition as a dynamic field — so the composition can register the
+/// to the composition as a dynamic object field — so the stake stays visible to
+/// object indexing (it is a `key` object) and the composition can register the
 /// stake against the recording's `RoyaltyPool` and claim its proportional
 /// royalties like any other share holder.
 ///
@@ -31,7 +32,8 @@ use miso::recording::Recording;
 use royalty_pool::pool::{Self, RoyaltyPool};
 use royalty_pool::stake::{Self, Stake};
 use sui::coin::Coin;
-use sui::dynamic_field as df;
+use sui::dynamic_object_field as dof;
+use sui::event::emit;
 
 // === Errors ===
 
@@ -47,6 +49,29 @@ const EPoolNotForRecording: u64 = 2;
 /// One stake position per recording-share type, attached to the composition.
 public struct ExtensionKey<phantom RecordingShare>() has copy, drop, store;
 
+// === Events ===
+
+/// Emitted when a stake is created and attached to the composition. Carries
+/// the full new record — the parent composition, the new stake object, and
+/// the staked principal — so an indexer can upsert its stake row without
+/// re-reading the composition. The recording-share type the stake is keyed by
+/// rides the event's `RecordingShare` phantom parameter.
+public struct StakeAttachedEvent<phantom RecordingShare> has copy, drop {
+    composition_id: ID,
+    stake_id: ID,
+    value: u64,
+}
+
+/// Emitted when the composition's stake is detached and its principal shares
+/// are reclaimed. The stake object is destroyed in the same transaction, so
+/// the removed record is carried in full — it is not recoverable from
+/// on-chain state afterward.
+public struct StakeDetachedEvent<phantom RecordingShare> has copy, drop {
+    composition_id: ID,
+    stake_id: ID,
+    value: u64,
+}
+
 // === Public Functions ===
 
 /// Redeem `value` of the composition's recording shares from its address
@@ -60,11 +85,15 @@ public fun create_stake<RecordingShare, CompositionShare>(
     value: u64,
     ctx: &mut TxContext,
 ) {
+    let composition_id = composition.id();
     let uid = composition.uid_mut(cap);
-    assert!(!df::exists(uid, ExtensionKey<RecordingShare>()), EStakeExists);
+    assert!(!dof::exists(uid, ExtensionKey<RecordingShare>()), EStakeExists);
     let balance = hikida::redeem_balance<RecordingShare>(uid, value);
     let stake = stake::new(balance, ctx);
-    df::add(uid, ExtensionKey<RecordingShare>(), stake);
+    let stake_id = stake.id();
+    let staked_value = stake.value();
+    dof::add(uid, ExtensionKey<RecordingShare>(), stake);
+    emit(StakeAttachedEvent<RecordingShare> { composition_id, stake_id, value: staked_value });
 }
 
 /// Register the composition's stake against a recording's royalty pool so
@@ -80,8 +109,8 @@ public fun register<RecordingShare, CompositionShare, Currency>(
 ) {
     assert_pool_for_recording(pool, recording.id());
     let uid = composition.uid_mut(cap);
-    assert!(df::exists(uid, ExtensionKey<RecordingShare>()), ENoStake);
-    let stake: &mut Stake<RecordingShare> = df::borrow_mut(uid, ExtensionKey<RecordingShare>());
+    assert!(dof::exists(uid, ExtensionKey<RecordingShare>()), ENoStake);
+    let stake: &mut Stake<RecordingShare> = dof::borrow_mut(uid, ExtensionKey<RecordingShare>());
     pool.register_stake(stake);
 }
 
@@ -96,8 +125,8 @@ public fun unregister<RecordingShare, CompositionShare, Currency>(
     pool: &mut RoyaltyPool<RecordingShare, Currency>,
 ) {
     let uid = composition.uid_mut(cap);
-    assert!(df::exists(uid, ExtensionKey<RecordingShare>()), ENoStake);
-    let stake: &mut Stake<RecordingShare> = df::borrow_mut(uid, ExtensionKey<RecordingShare>());
+    assert!(dof::exists(uid, ExtensionKey<RecordingShare>()), ENoStake);
+    let stake: &mut Stake<RecordingShare> = dof::borrow_mut(uid, ExtensionKey<RecordingShare>());
     pool.unregister_stake(stake);
 }
 
@@ -113,10 +142,15 @@ public fun unstake<RecordingShare, CompositionShare>(
     cap: &CompositionAdminCap<CompositionShare>,
     ctx: &mut TxContext,
 ): Coin<RecordingShare> {
+    let composition_id = composition.id();
     let uid = composition.uid_mut(cap);
-    assert!(df::exists(uid, ExtensionKey<RecordingShare>()), ENoStake);
-    let position: Stake<RecordingShare> = df::remove(uid, ExtensionKey<RecordingShare>());
-    stake::destroy(position).into_coin(ctx)
+    assert!(dof::exists(uid, ExtensionKey<RecordingShare>()), ENoStake);
+    let position: Stake<RecordingShare> = dof::remove(uid, ExtensionKey<RecordingShare>());
+    let stake_id = position.id();
+    let value = position.value();
+    let principal = stake::destroy(position).into_coin(ctx);
+    emit(StakeDetachedEvent<RecordingShare> { composition_id, stake_id, value });
+    principal
 }
 
 /// Claim the composition's accrued royalties from a recording's pool, returning
@@ -128,8 +162,8 @@ public fun claim<RecordingShare, CompositionShare, Currency>(
     ctx: &mut TxContext,
 ): Coin<Currency> {
     let uid = composition.uid_mut(cap);
-    assert!(df::exists(uid, ExtensionKey<RecordingShare>()), ENoStake);
-    let stake: &mut Stake<RecordingShare> = df::borrow_mut(uid, ExtensionKey<RecordingShare>());
+    assert!(dof::exists(uid, ExtensionKey<RecordingShare>()), ENoStake);
+    let stake: &mut Stake<RecordingShare> = dof::borrow_mut(uid, ExtensionKey<RecordingShare>());
     pool.claim_rewards(stake).into_coin(ctx)
 }
 
@@ -139,7 +173,7 @@ public fun claim<RecordingShare, CompositionShare, Currency>(
 public fun has_stake<RecordingShare, CompositionShare>(
     composition: &Composition<CompositionShare>,
 ): bool {
-    df::exists(composition.uid(), ExtensionKey<RecordingShare>())
+    dof::exists(composition.uid(), ExtensionKey<RecordingShare>())
 }
 
 // === Private Functions ===
@@ -171,6 +205,40 @@ public fun attach_stake_for_testing<RecordingShare, CompositionShare>(
     ctx: &mut TxContext,
 ) {
     let uid = composition.uid_mut(cap);
-    assert!(!df::exists(uid, ExtensionKey<RecordingShare>()), EStakeExists);
-    df::add(uid, ExtensionKey<RecordingShare>(), stake::new(balance, ctx));
+    assert!(!dof::exists(uid, ExtensionKey<RecordingShare>()), EStakeExists);
+    dof::add(uid, ExtensionKey<RecordingShare>(), stake::new(balance, ctx));
+}
+
+/// Borrow the attached stake so tests can check emitted events against the
+/// record actually written on-chain.
+#[test_only]
+public fun borrow_stake_for_testing<RecordingShare, CompositionShare>(
+    composition: &Composition<CompositionShare>,
+): &Stake<RecordingShare> {
+    dof::borrow(composition.uid(), ExtensionKey<RecordingShare>())
+}
+
+/// The attached stake's object ID as resolved through the dynamic-object-field
+/// index. Returns `option::some` only when the stake is stored as a first-class
+/// object (dof); plain dynamic-field storage (the C17 bug) resolves to
+/// `option::none`, which is what makes the regression test bite.
+#[test_only]
+public fun stake_object_id_for_testing<RecordingShare, CompositionShare>(
+    composition: &Composition<CompositionShare>,
+): Option<ID> {
+    dof::id(composition.uid(), ExtensionKey<RecordingShare>())
+}
+
+#[test_only]
+public fun attached_event_fields<RecordingShare>(
+    e: &StakeAttachedEvent<RecordingShare>,
+): (ID, ID, u64) {
+    (e.composition_id, e.stake_id, e.value)
+}
+
+#[test_only]
+public fun detached_event_fields<RecordingShare>(
+    e: &StakeDetachedEvent<RecordingShare>,
+): (ID, ID, u64) {
+    (e.composition_id, e.stake_id, e.value)
 }

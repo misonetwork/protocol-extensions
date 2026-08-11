@@ -16,6 +16,13 @@
 /// Two revenue sources:
 /// - Balance accumulator: funds accumulated on the release's address
 /// - Coins: individual coin objects sent to the release's address
+///
+/// Events are fat by design (MOVE-STANDARDS §7): one `ReleaseRevenueDistributedEvent`
+/// per track carries the full row (release, track, recording, value) so indexers
+/// only ingest and store. Note the boundary: a `MAX_TRACKS`-sized release emits
+/// 255 per-track events + 1 summary = 256, exactly the `max_num_event_emit` cap
+/// on older protocol versions (1024 on current ones) — do not add another event
+/// inside the distribution loop.
 module release_revenue_distributor::release_revenue_distributor;
 
 use hikida::hikida;
@@ -91,10 +98,14 @@ public fun distribute_revenue<Currency>(
         let track = &tracks[track_index];
         let track_split_bps = track.split_bps();
 
-        if (track_split_bps.value() > 0) {
-            // bps's `calc` was renamed to `apply` in the upstream bps
-            // package. Same semantics: scale `amount` by the BPS rate.
-            let rec_split_value = track_split_bps.apply(total_input_value);
+        // bps's `calc` was renamed to `apply` in the upstream bps
+        // package. Same semantics: scale `amount` by the BPS rate.
+        let rec_split_value = track_split_bps.apply(total_input_value);
+
+        // A share that floors to zero pays nothing: skip the split, the
+        // event, and the send — the same zero-share skip `recording::new`
+        // already uses.
+        if (rec_split_value > 0) {
             let rec_split_balance = revenue.split(rec_split_value);
 
             let recording_id = track.recording_id();
@@ -126,4 +137,25 @@ public fun distribute_revenue<Currency>(
     } else {
         revenue.destroy_zero();
     };
+}
+
+// === Test Only ===
+
+#[test_only]
+public fun distributed_event_fields<Currency>(
+    event: &ReleaseRevenueDistributedEvent<Currency>,
+): (ID, u64, ID, u64) {
+    (event.release_id, event.track_index, event.recording_id, event.recording_split_value)
+}
+
+#[test_only]
+public fun summary_event_fields<Currency>(
+    event: &ReleaseRevenueDistributionSummaryEvent<Currency>,
+): (ID, u64, u64, u64) {
+    (
+        event.release_id,
+        event.total_input_value,
+        event.total_distributed_value,
+        event.remainder_value,
+    )
 }

@@ -14,6 +14,11 @@
 /// (anti-churn) lock — the first set is free, later changes are throttled — so
 /// a release's declared genre stays stable enough to be reward-eligible.
 /// Per-track overrides are display refinements and are not locked.
+///
+/// A genre is either the album primary or a secondary, never both — the two
+/// are kept disjoint: setting the primary to a current secondary aborts
+/// (remove it from the secondaries first), and adding the current primary as
+/// a secondary aborts.
 module release_genre::release_genre;
 
 use genre::genre::Genre;
@@ -100,6 +105,9 @@ const EGenreAlreadySecondary: u64 = 41;
 const EMaxSecondaryGenres: u64 = 42;
 /// The genre is not an album secondary genre on this release.
 const EGenreNotSecondary: u64 = 43;
+/// The genre is an album secondary genre; remove it from the secondaries
+/// before making it the primary.
+const EPrimaryIsSecondary: u64 = 44;
 
 // Reference errors (50-59)
 /// Track index is out of bounds for this release's track count.
@@ -109,7 +117,9 @@ const ETrackIndexOutOfBounds: u64 = 50;
 
 /// Sets (or replaces) the album primary genre. Gated by the release admin cap.
 /// The first set is free; changing an existing primary requires at least
-/// `MIN_PRIMARY_GENRE_EPOCHS` to have passed since it was last set.
+/// `MIN_PRIMARY_GENRE_EPOCHS` to have passed since it was last set. Aborts if
+/// the genre is currently an album secondary — remove it from the secondaries
+/// first (primary and secondary are kept disjoint).
 public fun set_primary_genre(
     self: &mut Release,
     cap: &ReleaseAdminCap,
@@ -126,6 +136,7 @@ public fun set_primary_genre(
             epoch >= assignment.primary_set_epoch + MIN_PRIMARY_GENRE_EPOCHS,
             EPrimaryGenreLocked,
         );
+        assert!(!assignment.secondary.contains(&genre_id), EPrimaryIsSecondary);
         assignment.primary = genre_id;
         assignment.primary_set_epoch = epoch;
     } else {
@@ -190,7 +201,7 @@ public fun set_track_primary_genre(
     let genre_id = genre.id();
 
     assert!(df::exists(self.uid(), ExtensionKey()), ENoPrimaryGenre);
-    assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
+    assert!(track_index < self.tracks().length(), ETrackIndexOutOfBounds);
     let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
     assignment.track_primary.borrow_mut(track_index).swap_or_fill(genre_id);
 
@@ -203,7 +214,7 @@ public fun unset_track_primary_genre(self: &mut Release, cap: &ReleaseAdminCap, 
     let release_id = self.id();
 
     assert!(df::exists(self.uid(), ExtensionKey()), ENoPrimaryGenre);
-    assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
+    assert!(track_index < self.tracks().length(), ETrackIndexOutOfBounds);
     let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
     *assignment.track_primary.borrow_mut(track_index) = option::none();
 
@@ -243,7 +254,7 @@ public fun secondary_genres(self: &Release): vector<ID> {
 public fun track_primary_genre(self: &Release, track_index: u64): Option<ID> {
     let uid = self.uid();
     if (!df::exists(uid, ExtensionKey())) return option::none();
-    assert!(track_index < self.total_tracks(), ETrackIndexOutOfBounds);
+    assert!(track_index < self.tracks().length(), ETrackIndexOutOfBounds);
     let assignment = df::borrow<ExtensionKey, ReleaseGenre>(uid, ExtensionKey());
     let override = assignment.track_primary.borrow(track_index);
     if (override.is_some()) *override else option::some(assignment.primary)

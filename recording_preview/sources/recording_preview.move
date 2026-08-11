@@ -15,6 +15,7 @@ module recording_preview::recording_preview;
 use miso::recording::{Recording, RecordingAdminCap};
 use ori::walrus_data::WalrusData;
 use sui::dynamic_field as df;
+use sui::event::emit;
 
 // === Errors ===
 
@@ -26,6 +27,21 @@ const ENoPreview: u64 = 1;
 /// Dynamic-field key — one preview per recording.
 public struct ExtensionKey() has copy, drop, store;
 
+// === Events ===
+
+/// Emitted when a preview is set or replaced. Carries the full Walrus
+/// reference so an indexer can upsert its row without re-reading the object.
+public struct PreviewSetEvent has copy, drop {
+    recording_id: ID,
+    preview: WalrusData,
+}
+
+/// Emitted when a preview is removed. The removed reference is recoverable
+/// from the earlier `PreviewSetEvent`, so the recording ID suffices.
+public struct PreviewUnsetEvent has copy, drop {
+    recording_id: ID,
+}
+
 // === Write API ===
 
 /// Sets (or replaces) the recording's preview. The reference must be a
@@ -36,12 +52,14 @@ public fun set_preview<RecordingShare, CompositionShare>(
     preview: WalrusData,
 ) {
     preview.assert_is_blob();
+    let recording_id = self.id();
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         *df::borrow_mut(uid, ExtensionKey()) = preview;
     } else {
         df::add(uid, ExtensionKey(), preview);
-    }
+    };
+    emit(PreviewSetEvent { recording_id, preview });
 }
 
 /// Removes the preview, if any.
@@ -49,9 +67,11 @@ public fun unset_preview<RecordingShare, CompositionShare>(
     self: &mut Recording<RecordingShare, CompositionShare>,
     cap: &RecordingAdminCap<RecordingShare>,
 ) {
+    let recording_id = self.id();
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         let _: WalrusData = df::remove(uid, ExtensionKey());
+        emit(PreviewUnsetEvent { recording_id });
     }
 }
 
@@ -71,3 +91,13 @@ public fun preview<RecordingShare, CompositionShare>(
     assert!(has_preview(self), ENoPreview);
     df::borrow(self.uid(), ExtensionKey())
 }
+
+// === Test Only ===
+
+#[test_only]
+public fun set_event_fields(e: &PreviewSetEvent): (ID, WalrusData) {
+    (e.recording_id, e.preview)
+}
+
+#[test_only]
+public fun unset_event_recording_id(e: &PreviewUnsetEvent): ID { e.recording_id }

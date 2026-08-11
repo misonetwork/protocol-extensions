@@ -105,16 +105,40 @@ fun references_are_per_recording() {
 }
 
 #[test]
-fun set_emits_the_recording() {
+fun set_emits_the_reference_and_recording() {
     let ctx = &mut tx_context::dummy();
     let (mut rec, cap) = new_rec(ctx);
     let rec_id = object::id(&rec);
 
     mref::set_master_reference(&mut rec, &cap, walrus_data::new_blob(7));
 
+    // The event is the indexer's whole feed: it must carry the reference
+    // itself, not just a pointer back to the object.
     let events = event::events_by_type<mref::MasterReferenceSetEvent>();
     assert_eq!(events.length(), 1);
-    assert_eq!(mref::set_event_recording_id(&events[0]), rec_id);
+    let (id, reference) = mref::set_event_fields(&events[0]);
+    assert_eq!(id, rec_id);
+    assert_eq!(reference, walrus_data::new_blob(7));
+
+    destroy(rec);
+    destroy(cap);
+}
+
+/// An encrypted reference's sealed DEK is part of the record an indexer
+/// stores, so the event must carry it through unchanged.
+#[test]
+fun set_emits_an_encrypted_reference_with_its_dek() {
+    let ctx = &mut tx_context::dummy();
+    let (mut rec, cap) = new_rec(ctx);
+
+    mref::set_master_reference(&mut rec, &cap, walrus_data::new_encrypted_blob(8, b"dek"));
+
+    let events = event::events_by_type<mref::MasterReferenceSetEvent>();
+    assert_eq!(events.length(), 1);
+    let (_, reference) = mref::set_event_fields(&events[0]);
+    assert!(reference.is_encrypted());
+    assert_eq!(reference.blob_id(), 8);
+    assert_eq!(*reference.sealed_dek(), b"dek");
 
     destroy(rec);
     destroy(cap);

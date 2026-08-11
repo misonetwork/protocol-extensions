@@ -13,9 +13,9 @@ The `CoverArt` value type itself lives in the `cover_art` primitive (`lib/cover_
 ## Entry points
 
 - **`release_cover_art::set_cover`** — cap-gated; sets or replaces the album-level cover (lazily initializing the record).
-- **`release_cover_art::unset_cover`** — cap-gated; clears the album-level cover if present.
+- **`release_cover_art::unset_cover`** — cap-gated; clears the album-level cover; aborts if no record is attached.
 - **`release_cover_art::set_track_cover`** — cap-gated; sets or replaces a track's cover override, aborting if the track index is out of range for the release.
-- **`release_cover_art::unset_track_cover`** — cap-gated; removes a track's override (the track falls back to the album cover).
+- **`release_cover_art::unset_track_cover`** — cap-gated; removes a track's override (the track falls back to the album cover); aborts if no record is attached or the index is out of range.
 
 ## Views
 

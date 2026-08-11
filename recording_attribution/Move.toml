@@ -1,9 +1,0 @@
-[package]
-name = "recording_attribution"
-edition = "2024"
-license = "Apache 2.0"
-authors = ["Miso Labs, Inc. (build@miso.network)"]
-
-[dependencies]
-miso = { local = "../../miso-protocol/move" }
-royalty_pool = { local = "../lib/royalty_pool" }

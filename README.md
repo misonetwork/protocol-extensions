@@ -20,12 +20,12 @@ Each package in this repo is independent and published separately — depend on 
 | [`composition_credits`](./composition_credits) | `Composition` | Canonical writing-credits (attribution) standard: party-keyed songwriting / publishing credits. |
 | [`recording_credits`](./recording_credits) | `Recording` | Per-party performance credits (display name + roles) plus primary/featured artist designations. |
 | [`release_credits`](./release_credits) | `Release` | Top-line release billing (primary / featured artists). |
-| [`recording_attribution`](./recording_attribution) | `Recording` | Opt-in generative-use licensing plus immutable per-edge attribution that routes a generated recording's revenue back to its sources. |
-| [`recording_master`](./recording_master) | `Recording` | Generic, media-agnostic attachment of ingester-produced master values, namespaced by witness type and content digest. |
 | [`recording_preview`](./recording_preview) | `Recording` | Public audio preview clip — a single Walrus blob reference, cap-gated writes, no ingestion/attestation in V1. |
 | [`cover_art`](./cover_art) | `Release` | Evolvable cover-art metadata (still image + optional animation) referencing Walrus storage. |
+| [`release_snapshot_bundle`](./release_snapshot_bundle) | `Release` | Write-once pointer to the release's snapshot-bundle quilt (curated bonus material on Walrus) — no unset or replace, so a buyer's bundle can never be swapped. |
 | [`genre`](./genre) | `Release` | Curated genre vocabulary plus release genre assignment (one primary + secondary genres). |
-| [`streaming_links`](./streaming_links) | `Release` | External streaming-platform deep links for a release — album-level and per-track. |
+| [`release_description`](./release_description) | `Release` | The release's own words about itself — one free-text slot (≤ 8 KB), set and cleared under the release admin cap. |
+| [`release_dsp_link`](./release_dsp_link) | `Release` | External DSP (streaming platform) deep links for a release — album-level and per-track, one built-in enum covering all 8 supported platforms (Spotify, Apple Music, Amazon Music, Bandcamp, Deezer, SoundCloud, Tidal, YouTube Music). |
 
 ## Dependencies
 
@@ -34,11 +34,11 @@ Extensions read Miso objects and build on a few shared primitives. Each package 
 | Dependency | Used by | Role |
 |------------|---------|------|
 | [`miso`](https://github.com/misonetwork/miso-protocol) | all | Core `Composition` / `Recording` / `Release` / `Track` types and admin caps |
-| [`royalty_pool`](./lib/royalty_pool) | royalty pools, `composition_recording_stake`, `recording_attribution` | Stake-and-claim royalty pool primitive |
-| [`per_track`](./lib/per_track) | `cover_art`, `genre`, `streaming_links` | Per-track parallel array validated against a release's tracklist |
+| [`royalty_pool`](./lib/royalty_pool) | royalty pools, `composition_recording_stake` | Stake-and-claim royalty pool primitive |
+| [`per_track`](./lib/per_track) | `cover_art`, `genre`, `release_dsp_link` | Per-track parallel array validated against a release's tracklist |
 | `hikida` | royalty pools, `composition_recording_stake`, `release_revenue_distributor` | Balance accumulator for the `redeem_*` paths |
 | `partyos` | `*_credits` | Party identity for credit attribution |
-| [`ori`](https://github.com/unconfirmedlabs/ori) | `cover_art`, `recording_preview` | Walrus data references |
+| [`ori`](https://github.com/unconfirmedlabs/ori) | `cover_art`, `recording_preview`, `release_snapshot_bundle` | Walrus data references |
 
 The `miso` dependency resolves to the sibling `miso-protocol` checkout (`../../miso-protocol/move`). To build against the published protocol instead, point it at the git source:
 

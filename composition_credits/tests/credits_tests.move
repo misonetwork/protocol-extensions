@@ -11,6 +11,7 @@ use miso::test_helpers::CompositionShare;
 use miso_credit::credit;
 use partyos::party::{Self, Party, PartyAdminCap};
 use std::unit_test::{assert_eq, destroy};
+use sui::event;
 use sui::test_scenario;
 
 const ARTIST: address = @0xA1;
@@ -118,4 +119,49 @@ fun remove_credit_round_trip() {
 
     destroy(comp); destroy(cap); destroy(p); destroy(_pc);
     ts.end();
+}
+
+#[test]
+fun add_credit_emits_full_record() {
+    let ctx = &mut tx_context::dummy();
+    let (mut comp, cap) = mk_composition(ctx);
+    let (p, pc) = mk_party(b"Alice", ctx);
+    let composition_id = object::id(&comp);
+    let party_id = p.id();
+    let credit = credit::new(b"Alice".to_string(), vector[cpr::new_composer_role()]);
+
+    credits::add_credit(&mut comp, &cap, &p, credit);
+
+    let events = event::events_by_type<credits::CreditAddedEvent>();
+    assert_eq!(events.length(), 1);
+    let (event_composition_id, event_party_id, event_credit) =
+        credits::added_event_fields(&events[0]);
+    assert_eq!(event_composition_id, composition_id);
+    assert_eq!(event_party_id, party_id);
+    assert_eq!(event_credit, credit);
+
+    destroy(comp); destroy(cap); destroy(p); destroy(pc);
+}
+
+#[test]
+fun remove_credit_emits_full_record() {
+    let ctx = &mut tx_context::dummy();
+    let (mut comp, cap) = mk_composition(ctx);
+    let (p, pc) = mk_party(b"Alice", ctx);
+    let composition_id = object::id(&comp);
+    let party_id = p.id();
+    let credit = credit::new(b"Alice".to_string(), vector[cpr::new_composer_role()]);
+    credits::add_credit(&mut comp, &cap, &p, credit);
+
+    credits::remove_credit(&mut comp, &cap, party_id);
+
+    let events = event::events_by_type<credits::CreditRemovedEvent>();
+    assert_eq!(events.length(), 1);
+    let (event_composition_id, event_party_id, event_credit) =
+        credits::removed_event_fields(&events[0]);
+    assert_eq!(event_composition_id, composition_id);
+    assert_eq!(event_party_id, party_id);
+    assert_eq!(event_credit, credit);
+
+    destroy(comp); destroy(cap); destroy(p); destroy(pc);
 }

@@ -13,9 +13,7 @@ upgrade-capability = "0x29bf47de6d3c9a89285bc811606f44a02bbadb45c32f0bad358e7445
 
 [published.testnet]
 chain-id = "4c78adac"
-published-at = "0xed764634b9c9a6af04e3c7f60f657c8e2129baf9b43fb9aee6f3523a423228e4"
-original-id = "0xed764634b9c9a6af04e3c7f60f657c8e2129baf9b43fb9aee6f3523a423228e4"
+published-at = "0xce402933dce405769bac6c327642e8f8b4c3944a766012df455e0b8bd89efd6f"
+original-id = "0xce402933dce405769bac6c327642e8f8b4c3944a766012df455e0b8bd89efd6f"
 version = 1
-toolchain-version = "1.75.1"
 build-config = { flavor = "sui", edition = "2024" }
-upgrade-capability = "0x16290ecf7087180fb2a0003332716311af3527d3ce3d6b66074627d10499fdff"

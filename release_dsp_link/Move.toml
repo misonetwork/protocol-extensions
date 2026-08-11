@@ -7,8 +7,3 @@ authors = ["Miso Labs, Inc. (build@miso.network)"]
 [dependencies]
 miso = { local = "../../miso-protocol/move" }
 per_track = { local = "../lib/per_track" }
-dsp_link = { local = "../lib/dsp_link" }
-
-# Test-only: a concrete DSP payload used to instantiate the generics in tests.
-# `modes = ["test"]` keeps it out of the production dependency graph.
-release_dsp_link_spotify = { local = "../release_dsp_link_spotify", modes = ["test"] }

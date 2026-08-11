@@ -10,7 +10,7 @@ use release_genre::release_genre as rg;
 use miso::release::{Self, Release, ReleaseAdminCap};
 use miso::test_helpers;
 use miso::track;
-use std::unit_test::destroy;
+use std::unit_test::{assert_eq, destroy};
 use sui::test_scenario::{Self as ts, Scenario};
 
 const CURATOR: address = @0xC0;
@@ -196,6 +196,66 @@ fun secondary_equal_primary_aborts() {
     rg::add_secondary_genre(&mut rel, &cap, &genre1); // same as primary
 
     ts::return_immutable(genre1);
+    destroy(rel);
+    destroy(cap);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = rg::EPrimaryIsSecondary)]
+fun primary_equal_secondary_aborts() {
+    let mut scenario = ts::begin(CURATOR);
+    g::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(CURATOR);
+    let g1 = create_genre(&scenario, b"HIP_HOP");
+    scenario.next_tx(CURATOR);
+    let g2 = create_genre(&scenario, b"ELECTRONIC");
+
+    scenario.next_tx(CURATOR);
+    let genre1 = scenario.take_immutable_by_id<Genre>(g1);
+    let genre2 = scenario.take_immutable_by_id<Genre>(g2);
+    let (mut rel, cap) = mk_release(scenario.ctx());
+
+    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    rg::add_secondary_genre(&mut rel, &cap, &genre2);
+    // Wait out the hold period, then try to promote the secondary to primary.
+    30u64.do!(|_| { scenario.next_epoch(CURATOR); });
+    rg::set_primary_genre(&mut rel, &cap, &genre2, scenario.ctx());
+
+    ts::return_immutable(genre1);
+    ts::return_immutable(genre2);
+    destroy(rel);
+    destroy(cap);
+    scenario.end();
+}
+
+#[test]
+fun former_primary_becomes_secondary() {
+    let mut scenario = ts::begin(CURATOR);
+    g::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(CURATOR);
+    let g1 = create_genre(&scenario, b"HIP_HOP");
+    scenario.next_tx(CURATOR);
+    let g2 = create_genre(&scenario, b"ELECTRONIC");
+
+    scenario.next_tx(CURATOR);
+    let genre1 = scenario.take_immutable_by_id<Genre>(g1);
+    let genre2 = scenario.take_immutable_by_id<Genre>(g2);
+    let (mut rel, cap) = mk_release(scenario.ctx());
+
+    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    // Wait out the hold period, then change the primary to g2.
+    30u64.do!(|_| { scenario.next_epoch(CURATOR); });
+    rg::set_primary_genre(&mut rel, &cap, &genre2, scenario.ctx());
+    assert_eq!(rg::primary_genre(&rel), option::some(g2));
+    assert!(rg::secondary_genres(&rel).is_empty());
+    // The former primary is no longer the primary, so it can be a secondary.
+    rg::add_secondary_genre(&mut rel, &cap, &genre1);
+    assert_eq!(rg::secondary_genres(&rel), vector[g1]);
+
+    ts::return_immutable(genre1);
+    ts::return_immutable(genre2);
     destroy(rel);
     destroy(cap);
     scenario.end();

@@ -20,6 +20,7 @@ use miso::composition::{Composition, CompositionAdminCap};
 use miso_credit::credit::Credit;
 use partyos::party::Party;
 use sui::dynamic_field as df;
+use sui::event::emit;
 use sui::vec_map::{Self, VecMap};
 
 // === Constants ===
@@ -65,6 +66,25 @@ public struct CompositionCredits has store {
     credits: VecMap<ID, Credit<CompositionPartyRole>>,
 }
 
+// === Events ===
+
+/// Emitted when a credit is added for a party on the composition. Carries the
+/// full credit record so an indexer can upsert its row without re-reading the
+/// credits dynamic field.
+public struct CreditAddedEvent has copy, drop {
+    composition_id: ID,
+    party_id: ID,
+    credit: Credit<CompositionPartyRole>,
+}
+
+/// Emitted when a party's credit is removed from the composition. Carries the
+/// removed record so an indexer can delete its row without re-reading state.
+public struct CreditRemovedEvent has copy, drop {
+    composition_id: ID,
+    party_id: ID,
+    credit: Credit<CompositionPartyRole>,
+}
+
 // === Write API ===
 
 /// Adds a credit for a party on the composition, lazily creating the credits
@@ -79,11 +99,14 @@ public fun add_credit<CompositionShare>(
     assert!(credit.roles().length() >= MIN_ROLES_PER_CREDIT, EMinRolesNotMet);
     assert!(credit.roles().length() <= MAX_ROLES_PER_CREDIT, EExceedsMaxRoles);
 
+    let composition_id = self.id();
     let party_id = party.id();
     let cc = borrow_mut_or_init(self.uid_mut(cap));
     assert!(cc.credits.length() < MAX_CREDITS, EMaxCreditsExceeded);
     assert!(!cc.credits.contains(&party_id), EPartyAlreadyCredited);
     cc.credits.insert(party_id, credit);
+
+    emit(CreditAddedEvent { composition_id, party_id, credit });
 }
 
 /// Removes a party's credit. Requires the composition's admin capability.
@@ -92,9 +115,12 @@ public fun remove_credit<CompositionShare>(
     cap: &CompositionAdminCap<CompositionShare>,
     party_id: ID,
 ) {
+    let composition_id = self.id();
     let cc = borrow_mut(self.uid_mut(cap));
     assert!(cc.credits.contains(&party_id), EPartyNotCredited);
-    let (_, _) = cc.credits.remove(&party_id);
+    let (_, credit) = cc.credits.remove(&party_id);
+
+    emit(CreditRemovedEvent { composition_id, party_id, credit });
 }
 
 // === Public View Functions ===
@@ -134,4 +160,16 @@ fun borrow_mut_or_init(uid: &mut UID): &mut CompositionCredits {
         );
     };
     df::borrow_mut(uid, ExtensionKey())
+}
+
+// === Test Only ===
+
+#[test_only]
+public fun added_event_fields(e: &CreditAddedEvent): (ID, ID, Credit<CompositionPartyRole>) {
+    (e.composition_id, e.party_id, e.credit)
+}
+
+#[test_only]
+public fun removed_event_fields(e: &CreditRemovedEvent): (ID, ID, Credit<CompositionPartyRole>) {
+    (e.composition_id, e.party_id, e.credit)
 }

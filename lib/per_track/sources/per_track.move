@@ -12,7 +12,7 @@
 /// deliberately does not store.
 ///
 /// Construction reads the `Release` and sizes/validates the array against
-/// `total_tracks()`, so a `PerTrack` is parallel to the tracklist *by
+/// the tracklist length, so a `PerTrack` is parallel to the tracklist *by
 /// construction* — an extension cannot attach a misaligned array. Because a
 /// release's tracklist is frozen at creation, that alignment holds for the
 /// release's whole life.
@@ -40,7 +40,7 @@ const ELengthMismatch: u64 = 1;
 /// Builds a `PerTrack` from one value per track, in tracklist order. Aborts
 /// unless `entries.length()` equals the release's track count.
 public fun new<Data: store + drop>(release: &Release, entries: vector<Data>): PerTrack<Data> {
-    assert!(entries.length() == release.total_tracks(), ELengthMismatch);
+    assert!(entries.length() == release.tracks().length(), ELengthMismatch);
     PerTrack(entries)
 }
 
@@ -49,7 +49,7 @@ public fun new<Data: store + drop>(release: &Release, entries: vector<Data>): Pe
 /// metadata: fill with `option::none()`, then set individual tracks via
 /// `borrow_mut`.
 public fun filled<Data: store + drop + copy>(release: &Release, value: Data): PerTrack<Data> {
-    let n = release.total_tracks();
+    let n = release.tracks().length();
     let mut entries = vector[];
     let mut i = 0;
     while (i < n) {

@@ -9,5 +9,5 @@ authors = ["Miso Labs, Inc. (build@miso.network)"]
 # this package validates only count and duplicates — the same split
 # `party_profile` uses.
 [dependencies]
-miso = { local = "../../miso-protocol/move" }
+miso = { local = "../../miso-protocol" }
 language_code = { git = "https://github.com/unconfirmedlabs/language_code.git", rev = "c5973df88fa9472fa706ef23c96c69464bf81a98" }

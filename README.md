@@ -40,7 +40,7 @@ Extensions read Miso objects and build on a few shared primitives. Each package 
 | `partyos` | `*_credits` | Party identity for credit attribution |
 | [`ori`](https://github.com/unconfirmedlabs/ori) | `cover_art`, `recording_preview`, `release_snapshot_bundle` | Walrus data references |
 
-The `miso` dependency resolves to the sibling `miso-protocol` checkout (`../../miso-protocol/move`). To build against the published protocol instead, point it at the git source:
+The `miso` dependency resolves to the sibling `miso-protocol` checkout (`../../miso-protocol`). To build against the published protocol instead, point it at the git source:
 
 ```toml
 miso = { git = "https://github.com/misonetwork/miso-protocol.git", subdir = "move", rev = "main" }

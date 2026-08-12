@@ -23,9 +23,9 @@ manifest_digest = "5745706258F61D6CE210904B3E6AE87A73CE9D31A6F93BE4718C442529332
 deps = { std = "MoveStdlib", sui = "Sui" }
 
 [pinned.testnet.miso]
-source = { local = "../../miso-protocol/move" }
+source = { local = "../../miso-protocol" }
 use_environment = "testnet"
-manifest_digest = "972D81D78EB04E48690EE44CBCFACE394AAE6D8D5964D861F394AC50DEB1053C"
+manifest_digest = "1D12D0791136BBD266B87E266ECD9F55291AE4E47C2ECEB6639268F6B93B9E59"
 deps = { bps = "bps", miso_share = "miso_share", std = "MoveStdlib", sui = "Sui" }
 
 [pinned.testnet.miso_share]
@@ -37,5 +37,5 @@ deps = { std = "MoveStdlib", sui = "Sui" }
 [pinned.testnet.release_description]
 source = { root = true }
 use_environment = "testnet"
-manifest_digest = "A4926C52A452CB77DDCF60F8DAC64A8D61128B27C5F4CE46A1436ECA9868C54E"
+manifest_digest = "E41CD7753CD4703A1652F7B7E25C5EEFC1E2B8D910FF02AA5B616A94BB689176"
 deps = { miso = "miso", std = "MoveStdlib", sui = "Sui" }

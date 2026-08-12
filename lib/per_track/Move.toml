@@ -8,4 +8,4 @@ authors = ["Miso Labs, Inc. (build@miso.network)"]
 # array against the tracklist, so alignment is an invariant of the type rather
 # than a rule each extension must remember — hence the dependency on miso core.
 [dependencies]
-miso = { local = "../../../miso-protocol/move" }
+miso = { local = "../../../miso-protocol" }

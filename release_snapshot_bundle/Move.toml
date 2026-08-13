@@ -9,5 +9,5 @@ authors = ["Miso Labs, Inc. (build@miso.network)"]
 # `ori` for the `WalrusData` reference type — pinned to the same rev as
 # `recording_preview` and `recording_master_reference`.
 [dependencies]
-miso = { local = "../../miso-protocol" }
+miso = { local = "../../../misonetwork/protocol" }
 ori = { git = "https://github.com/unconfirmedlabs/ori.git", subdir = "move", rev = "8a4dbb5f853b78eb7475063a840c4444421c5bbd" }

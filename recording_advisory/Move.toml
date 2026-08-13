@@ -8,4 +8,4 @@ authors = ["Miso Labs, Inc. (build@miso.network)"]
 # needs only miso core, to operate on `Recording` through its cap-gated
 # `uid_mut`.
 [dependencies]
-miso = { local = "../../miso-protocol" }
+miso = { local = "../../../misonetwork/protocol" }

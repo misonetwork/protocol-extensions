@@ -8,4 +8,4 @@ authors = ["Miso Labs, Inc. (build@miso.network)"]
 # so there is nothing to depend on beyond miso core — needed only to reach
 # `Release` through its cap-gated `uid_mut`.
 [dependencies]
-miso = { local = "../../miso-protocol" }
+miso = { local = "../../../misonetwork/protocol" }

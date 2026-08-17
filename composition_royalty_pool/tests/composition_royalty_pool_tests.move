@@ -174,3 +174,50 @@ fun test_receive_aborts_for_wrong_pool() {
     destroy(b_comp); destroy(b_cap);
     test_scenario::end(scenario);
 }
+
+#[test]
+/// Funds accumulated on the composition's address are folded into the pool
+/// by the admin via `redeem_and_deposit`. Stake then claims the full deposit.
+fun test_redeem_and_deposit_full_flow() {
+    let mut scenario = test_scenario::begin(ALICE);
+
+    // Initialize composition + pool, register a stake.
+    scenario.next_tx(ALICE);
+    let (mut composition, cap) = new_composition_fixture(&mut scenario);
+    let composition_id = composition.id();
+    let pool = composition_royalty_pool::initialize_pool<TEST_SHARE, TEST_CURRENCY>(
+        &mut composition,
+        &cap,
+    );
+    let pool_id = pool.id();
+    pool.share();
+
+    scenario.next_tx(ALICE);
+    let mut s = new_stake(&mut scenario, 100);
+    let mut pool: RoyaltyPool<TEST_SHARE, TEST_CURRENCY> =
+        scenario.take_shared_by_id(pool_id);
+    pool.register_stake(&mut s);
+    test_scenario::return_shared(pool);
+
+    // Royalty payer's payment lands in the composition's funds accumulator.
+    scenario.next_tx(ALICE);
+    balance::create_for_testing<TEST_CURRENCY>(1_000).send_funds(composition_id.to_address());
+
+    // Admin redeems from the accumulator and folds into the pool.
+    scenario.next_tx(ALICE);
+    let mut pool: RoyaltyPool<TEST_SHARE, TEST_CURRENCY> =
+        scenario.take_shared_by_id(pool_id);
+    composition_royalty_pool::redeem_and_deposit(&mut composition, &cap, 1_000, &mut pool);
+
+    // Stake claims.
+    let reward = pool.claim_rewards(&mut s);
+    assert!(reward.value() == 1_000);
+    pool.unregister_stake(&mut s);
+    test_scenario::return_shared(pool);
+
+    balance::destroy_for_testing(stake::destroy(s));
+    balance::destroy_for_testing(reward);
+    destroy(composition);
+    destroy(cap);
+    test_scenario::end(scenario);
+}

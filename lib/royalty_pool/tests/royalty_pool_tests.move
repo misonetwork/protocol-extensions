@@ -720,3 +720,92 @@ fun test_cumulative_deposits_tracks_lifetime_inflows() {
     balance::destroy_for_testing(r);
     test_scenario::end(scenario);
 }
+
+// === Cross-pool, same Currency ===
+
+/// Create two `RoyaltyPool<TEST_SHARE, TEST_CURRENCY>` pools derived from two
+/// different parents (one parent cannot host two pools of the same Currency).
+fun create_two_pools_same_currency(scenario: &mut Scenario): (ID, ID) {
+    scenario.next_tx(ALICE);
+    let mut parent_a = object::new(scenario.ctx());
+    let mut parent_b = object::new(scenario.ctx());
+    let pool_a = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent_a);
+    let pool_b = pool::new<TEST_SHARE, TEST_CURRENCY>(&mut parent_b);
+    let id_a = pool_a.id();
+    let id_b = pool_b.id();
+    pool_a.share();
+    pool_b.share();
+    destroy(parent_a);
+    destroy(parent_b);
+    (id_a, id_b)
+}
+
+#[test, expected_failure(abort_code = pool::EAlreadyRegistered)]
+/// Registrations are keyed by `Currency`, not by pool: a stake registered
+/// with one pool cannot also register with another pool of the same
+/// Currency — this is what blocks double-counting the same shares.
+fun test_register_aborts_at_second_pool_same_currency() {
+    let mut scenario = test_scenario::begin(ALICE);
+    let (id_a, id_b) = create_two_pools_same_currency(&mut scenario);
+
+    scenario.next_tx(ALICE);
+    let mut s = new_stake(&mut scenario, 100);
+    let mut pool_a = take_pool(&scenario, id_a);
+    pool_a.register_stake(&mut s);
+    test_scenario::return_shared(pool_a);
+
+    scenario.next_tx(ALICE);
+    let mut pool_b = take_pool(&scenario, id_b);
+    pool_b.register_stake(&mut s); // aborts
+    test_scenario::return_shared(pool_b);
+
+    balance::destroy_for_testing(stake::destroy(s));
+    test_scenario::end(scenario);
+}
+
+#[test, expected_failure(abort_code = pool::EPoolIdMismatch)]
+/// A stake registered with pool A cannot claim from pool B (same Currency):
+/// the registration records the pool it belongs to.
+fun test_claim_aborts_at_wrong_pool() {
+    let mut scenario = test_scenario::begin(ALICE);
+    let (id_a, id_b) = create_two_pools_same_currency(&mut scenario);
+
+    scenario.next_tx(ALICE);
+    let mut s = new_stake(&mut scenario, 100);
+    let mut pool_a = take_pool(&scenario, id_a);
+    pool_a.register_stake(&mut s);
+    test_scenario::return_shared(pool_a);
+
+    send_to_pool<TEST_SHARE, TEST_CURRENCY>(&mut scenario, id_a, 500);
+
+    scenario.next_tx(ALICE);
+    let mut pool_b = take_pool(&scenario, id_b);
+    let r = pool_b.claim_rewards(&mut s); // aborts
+    balance::destroy_for_testing(r);
+    test_scenario::return_shared(pool_b);
+
+    balance::destroy_for_testing(stake::destroy(s));
+    test_scenario::end(scenario);
+}
+
+#[test, expected_failure(abort_code = pool::EPoolIdMismatch)]
+/// A stake registered with pool A cannot unregister from pool B (same
+/// Currency).
+fun test_unregister_aborts_at_wrong_pool() {
+    let mut scenario = test_scenario::begin(ALICE);
+    let (id_a, id_b) = create_two_pools_same_currency(&mut scenario);
+
+    scenario.next_tx(ALICE);
+    let mut s = new_stake(&mut scenario, 100);
+    let mut pool_a = take_pool(&scenario, id_a);
+    pool_a.register_stake(&mut s);
+    test_scenario::return_shared(pool_a);
+
+    scenario.next_tx(ALICE);
+    let mut pool_b = take_pool(&scenario, id_b);
+    pool_b.unregister_stake(&mut s); // aborts
+    test_scenario::return_shared(pool_b);
+
+    balance::destroy_for_testing(stake::destroy(s));
+    test_scenario::end(scenario);
+}

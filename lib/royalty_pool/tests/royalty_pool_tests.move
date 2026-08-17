@@ -6,6 +6,7 @@ module royalty_pool::royalty_pool_tests;
 
 use royalty_pool::pool::{Self, RoyaltyPool};
 use royalty_pool::stake::{Self, Stake};
+use std::type_name;
 use std::unit_test::destroy;
 use sui::balance;
 use sui::coin::{Self, Coin};
@@ -677,6 +678,100 @@ fun test_receive_and_deposit_recovers_funds_at_pool_address() {
     assert!(reward.value() == 500);
     pool.unregister_stake(&mut s);
     test_scenario::return_shared(pool);
+
+    balance::destroy_for_testing(stake::destroy(s));
+    balance::destroy_for_testing(reward);
+    test_scenario::end(scenario);
+}
+
+// === Recovery paths: redeem_and_deposit ===
+
+#[test]
+/// A balance `send_funds`ed directly to the pool's address (crediting the
+/// pool's own funds accumulator) can be folded into the accumulator via
+/// `redeem_and_deposit`, recovering the funds for staker distribution.
+fun test_redeem_and_deposit_recovers_funds_at_pool_address() {
+    let mut scenario = test_scenario::begin(ALICE);
+    let pool_id = create_pool(&mut scenario);
+
+    scenario.next_tx(ALICE);
+    let mut s = new_stake(&mut scenario, 100);
+    let mut pool = take_pool(&scenario, pool_id);
+    pool.register_stake(&mut s);
+    test_scenario::return_shared(pool);
+
+    // Royalty payer (or a confused user) sends a balance straight to the
+    // pool's address instead of the parent's.
+    scenario.next_tx(ALICE);
+    balance::create_for_testing<TEST_CURRENCY>(500).send_funds(pool_id.to_address());
+
+    // Anyone can recover by calling redeem_and_deposit on the pool.
+    scenario.next_tx(ALICE);
+    let mut pool = take_pool(&scenario, pool_id);
+    pool.redeem_and_deposit(500);
+    assert!(pool.balance().value() == 500);
+
+    let reward = pool.claim_rewards(&mut s);
+    assert!(reward.value() == 500);
+    pool.unregister_stake(&mut s);
+    test_scenario::return_shared(pool);
+
+    balance::destroy_for_testing(stake::destroy(s));
+    balance::destroy_for_testing(reward);
+    test_scenario::end(scenario);
+}
+
+// === View accessors ===
+
+#[test]
+/// The remaining view accessors: stake identity and balance access, direct
+/// registration reads, the raw accumulator index, and `pending_rewards`
+/// against a pool the stake is registered with — but not this one.
+fun test_view_accessors_track_registration_lifecycle() {
+    let mut scenario = test_scenario::begin(ALICE);
+    let (id_a, id_b) = create_two_pools_same_currency(&mut scenario);
+
+    scenario.next_tx(ALICE);
+    let mut s = new_stake(&mut scenario, 100);
+    let stake_id = s.id();
+    assert!(s.balance().value() == 100);
+
+    let currency = type_name::with_defining_ids<TEST_CURRENCY>();
+    assert!(!s.has_registration(&currency));
+
+    let mut pool_a = take_pool(&scenario, id_a);
+    assert!(pool_a.cumulative_reward_per_share() == 0);
+    pool_a.register_stake(&mut s);
+    assert!(s.has_registration(&currency));
+    let registration = s.get_registration(&currency);
+    assert!(stake::registration_pool_id(registration) == id_a);
+    assert!(stake::registration_last_claim_index(registration) == 0);
+    test_scenario::return_shared(pool_a);
+
+    send_to_pool<TEST_SHARE, TEST_CURRENCY>(&mut scenario, id_a, 1_000);
+
+    scenario.next_tx(ALICE);
+    let mut pool_a = take_pool(&scenario, id_a);
+    let pool_b = take_pool(&scenario, id_b);
+    // The accumulator advanced by 1_000 * PRECISION / 100.
+    assert!(pool_a.cumulative_reward_per_share() == 10_000_000_000_000_000_000);
+    // Registered with pool A, not pool B: B reports zero pending.
+    assert!(pool_a.pending_rewards(&s) == 1_000);
+    assert!(pool_b.pending_rewards(&s) == 0);
+
+    let reward = pool_a.claim_rewards(&mut s);
+    assert!(reward.value() == 1_000);
+    // The claim consumed the full index delta.
+    let registration = s.get_registration(&currency);
+    assert!(
+        stake::registration_last_claim_index(registration) ==
+        pool_a.cumulative_reward_per_share(),
+    );
+
+    pool_a.unregister_stake(&mut s);
+    assert!(s.id() == stake_id);
+    test_scenario::return_shared(pool_a);
+    test_scenario::return_shared(pool_b);
 
     balance::destroy_for_testing(stake::destroy(s));
     balance::destroy_for_testing(reward);

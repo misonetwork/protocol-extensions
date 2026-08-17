@@ -205,6 +205,33 @@ fun zero_input_distributes_nothing() {
     destroy(cap);
 }
 
+#[test]
+fun remainder_returns_to_release_accumulator_and_is_redeemable() {
+    let ctx = &mut tx_context::dummy();
+    let (mut rel, cap, _) = mk_release(ctx);
+
+    // 4000/3000/3000 bps on 10_001 leaves remainder 1, which is sent back to
+    // the release's own funds accumulator rather than lost.
+    distributor::distribute_revenue(&rel, balance::create_for_testing<TEST_CURRENCY>(10_001));
+
+    // Prove the remainder actually landed there: redeem exactly that 1 unit
+    // and run it through distribution again. (It floors to zero on every
+    // track, so it returns to the accumulator once more.) If the remainder
+    // had not been credited, the redeem itself would abort.
+    distributor::redeem_and_distribute_revenue<TEST_CURRENCY>(&mut rel, &cap, 1);
+
+    let summaries = summary_events();
+    assert_eq!(summaries.length(), 2);
+    let (_, total_input, total_distributed, remainder) =
+        distributor::summary_event_fields(&summaries[1]);
+    assert_eq!(total_input, 1);
+    assert_eq!(total_distributed, 0);
+    assert_eq!(remainder, 1);
+
+    destroy(rel);
+    destroy(cap);
+}
+
 // === redeem_and_distribute_revenue ===
 
 #[test]

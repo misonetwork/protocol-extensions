@@ -156,6 +156,54 @@ fun test_redeem_and_deposit_full_flow() {
 }
 
 #[test, expected_failure(abort_code = recording_royalty_pool::EPoolNotForRecording)]
+/// `redeem_and_deposit` aborts when the pool was derived from a different
+/// recording.
+fun test_redeem_aborts_for_wrong_pool() {
+    let mut scenario = test_scenario::begin(ALICE);
+
+    // Recording A with its own pool.
+    scenario.next_tx(ALICE);
+    let (mut a_rec, a_cap) = new_recording_fixture(&mut scenario);
+    let a_pool = recording_royalty_pool::initialize_pool<TEST_SHARE, TEST_COMP_SHARE, TEST_CURRENCY>(
+        &mut a_rec,
+        &a_cap,
+    );
+    let a_pool_id = a_pool.id();
+    a_pool.share();
+
+    // Recording B (no pool of its own; we'll try to fold its revenue into A's pool).
+    scenario.next_tx(ALICE);
+    let (mut b_rec, b_cap) = new_recording_fixture(&mut scenario);
+    let b_id = b_rec.id();
+
+    // Register a stake against A's pool so the deposit doesn't abort on
+    // ENoStakedShares (we want to hit EPoolNotForRecording specifically).
+    scenario.next_tx(ALICE);
+    let mut s = new_stake(&mut scenario, 100);
+    let mut a_pool: RoyaltyPool<TEST_SHARE, TEST_CURRENCY> =
+        scenario.take_shared_by_id(a_pool_id);
+    a_pool.register_stake(&mut s);
+    test_scenario::return_shared(a_pool);
+
+    // Revenue lands in B's funds accumulator.
+    scenario.next_tx(ALICE);
+    balance::create_for_testing<TEST_CURRENCY>(100).send_funds(b_id.to_address());
+
+    // Try to fold B's funds into A's pool — should abort.
+    scenario.next_tx(ALICE);
+    let mut a_pool: RoyaltyPool<TEST_SHARE, TEST_CURRENCY> =
+        scenario.take_shared_by_id(a_pool_id);
+    recording_royalty_pool::redeem_and_deposit(&mut b_rec, &b_cap, 100, &mut a_pool);
+
+    // Unreached.
+    test_scenario::return_shared(a_pool);
+    balance::destroy_for_testing(stake::destroy(s));
+    destroy(a_rec); destroy(a_cap);
+    destroy(b_rec); destroy(b_cap);
+    test_scenario::end(scenario);
+}
+
+#[test, expected_failure(abort_code = recording_royalty_pool::EPoolNotForRecording)]
 /// `receive_and_deposit` aborts when the pool was derived from a different
 /// recording.
 fun test_receive_aborts_for_wrong_pool() {

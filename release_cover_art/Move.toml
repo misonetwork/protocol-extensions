@@ -5,6 +5,6 @@ license = "Apache 2.0"
 authors = ["Miso Labs, Inc. (build@miso.network)"]
 
 [dependencies]
-cover_art = { local = "../../cover-art" }
-miso = { local = "../../protocol" }
-per_track = { local = "../../per-track" }
+cover_art = { git = "https://github.com/misonetwork/cover-art.git", rev = "5f927785e0f96b44ec5fdf743094cdc51fec9f09" }
+miso = { git = "https://github.com/misonetwork/protocol.git", rev = "ecb3da52c14912e257f00b30185c598e92ffc5e3" }
+per_track = { git = "https://github.com/misonetwork/per-track.git", rev = "0bc57928c73b911cfcde41abaf3f5973e64e1708" }

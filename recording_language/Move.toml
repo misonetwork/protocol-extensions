@@ -1,0 +1,13 @@
+[package]
+name = "recording_language"
+edition = "2024"
+license = "Apache 2.0"
+authors = ["Miso Labs, Inc. (build@miso.network)"]
+
+# One concern, one package: which languages are sung or spoken on a recording.
+# `language_code` supplies an ISO 639-1 code that is valid by construction, so
+# this package validates only count and duplicates — the same split
+# `party_profile` uses.
+[dependencies]
+miso = { local = "../../protocol" }
+language_code = { git = "https://github.com/unconfirmedlabs/language_code.git", rev = "c5973df88fa9472fa706ef23c96c69464bf81a98" }

@@ -1,0 +1,15 @@
+[package]
+name = "composition_routed_stake"
+edition = "2024"
+license = "Apache 2.0"
+authors = ["Miso Labs, Inc. (build@miso.network)"]
+
+[dependencies]
+miso = { local = "../../protocol" }
+hikida = { git = "https://github.com/unconfirmedlabs/hikida.git", rev = "e88c6fa88348bc2764823cf3666d7ca5e08b2f4f" }
+royalty_pool = { local = "../../royalty-pool" }
+routed_stake = { local = "../../routed-stake" }
+# Test-only (modes = ["test"]): cross-package e2e for the full revenue leg.
+release_revenue_distributor = { local = "../release_revenue_distributor", modes = ["test"] }
+recording_royalty_pool = { local = "../recording_royalty_pool", modes = ["test"] }
+composition_royalty_pool = { local = "../composition_royalty_pool", modes = ["test"] }

@@ -1,0 +1,10 @@
+[package]
+name = "release_cover_art"
+edition = "2024"
+license = "Apache 2.0"
+authors = ["Miso Labs, Inc. (build@miso.network)"]
+
+[dependencies]
+cover_art = { local = "../../cover-art" }
+miso = { local = "../../protocol" }
+per_track = { local = "../../per-track" }

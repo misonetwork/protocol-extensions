@@ -5,7 +5,15 @@
 
 > A monorepo of first-party extension packages for the [Miso protocol](https://github.com/misonetwork/miso-protocol) on [Sui](https://sui.io), maintained by Miso.
 
-Miso keeps its core objects — `Composition`, `Recording`, `Release` — lean: only protocol-verifiable, constitutive state lives on them. Everything else is an **extension**: a standalone Move package that plugs into those objects (through their stable addresses, their admin caps, and raw `&mut UID` access) without modifying the protocol. New behavior can be added or removed without touching, or re-publishing, the core.
+Miso keeps its core objects — `Composition`, `Recording`, `Release` — lean: only protocol-verifiable, constitutive state lives on them. **Extensions** add data to those objects through their cap-gated `&mut UID` surface without changing who controls them. **Plugins** add business logic by installing on a [vault](https://github.com/misofm/vault) that custodies the object's admin cap; an installed plugin must present its private, transaction-local witness before the vault will expose the object's `&mut UID`. **Services** compose protocol objects and economic primitives without attaching a schema or taking custody of authority.
+
+In short: extensions extend the data model; plugins extend the authority model.
+
+First-party plugin packages are maintained separately in a private repository
+while their review and scoring model is developed. Every plugin package has
+one canonical installation identity at `0xpkg::witness::Witness`. The type has
+only `drop`, and a package-only `witness::new()` lets the plugin's internal
+modules construct it without exposing construction to downstream packages.
 
 Each package in this repo is independent and published separately — depend on only the ones you need. **For how a given extension works, see its own `README.md`** (linked below); this page stays at the monorepo level.
 
@@ -79,7 +87,7 @@ bun run codegen   # regenerate ABI bindings from the sibling Move packages
 
 ## Design notes
 
-- **Extensions, not forks.** These packages operate on Miso objects via their addresses and admin caps; they never modify core protocol state, so distribution and metadata models can evolve independently of the protocol.
+- **Extensions and plugins, not forks.** These packages operate on Miso objects through their stable public interfaces; they never modify core protocol definitions, so data schemas and administration models can evolve independently of the protocol.
 - **Address-as-inbox.** Every composition and recording has a stable on-chain address that acts as a permanent inbox — payers need only the object ID, and funds can arrive before any pool exists; the admin folds them in later.
 - **Push vs. pull.** `release_revenue_distributor` is a *push* split (revenue fans out to works at distribution time); the `*_royalty_pool` packages are *pull* claims (holders stake and withdraw over time).
 

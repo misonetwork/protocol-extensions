@@ -89,7 +89,7 @@ fun set_primary_genre_and_tracks_inherit() {
     let release_id = rel.id();
 
     assert!(!rg::has_genre(&rel));
-    rg::set_primary_genre(&mut rel, &cap, &genre, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre);
     assert!(rg::has_genre(&rel));
     assert!(rg::primary_genre(&rel) == option::some(genre_id));
     assert!(rg::secondary_genres(&rel).is_empty());
@@ -101,11 +101,10 @@ fun set_primary_genre_and_tracks_inherit() {
     // full payload pinned.
     let events = event::events_by_type<rg::PrimaryGenreSetEvent>();
     assert_eq!(events.length(), 1);
-    let (event_release_id, event_genre_id, event_epoch) =
+    let (event_release_id, event_genre_id) =
         rg::primary_genre_set_event_fields(&events[0]);
     assert_eq!(event_release_id, release_id);
     assert_eq!(event_genre_id, genre_id);
-    assert_eq!(event_epoch, scenario.ctx().epoch());
 
     ts::return_immutable(genre);
     destroy(rel);
@@ -114,7 +113,7 @@ fun set_primary_genre_and_tracks_inherit() {
 }
 
 #[test]
-fun replace_primary_after_hold_period() {
+fun primary_can_be_replaced_immediately() {
     let mut scenario = ts::begin(CURATOR);
     g::init_for_testing(scenario.ctx());
 
@@ -128,38 +127,9 @@ fun replace_primary_after_hold_period() {
     let genre2 = scenario.take_immutable_by_id<Genre>(g2);
     let (mut rel, cap) = mk_release(scenario.ctx());
 
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
-    // Wait out the 30-epoch hold period, then the change is allowed.
-    30u64.do!(|_| { scenario.next_epoch(CURATOR); });
-    rg::set_primary_genre(&mut rel, &cap, &genre2, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
+    rg::set_primary_genre(&mut rel, &cap, &genre2);
     assert!(rg::primary_genre(&rel) == option::some(g2));
-
-    ts::return_immutable(genre1);
-    ts::return_immutable(genre2);
-    destroy(rel);
-    destroy(cap);
-    scenario.end();
-}
-
-#[test]
-#[expected_failure(abort_code = 31, location = release_genre::release_genre)] // EPrimaryGenreLocked
-fun change_primary_too_soon_aborts() {
-    let mut scenario = ts::begin(CURATOR);
-    g::init_for_testing(scenario.ctx());
-
-    scenario.next_tx(CURATOR);
-    let g1 = create_genre(&scenario, b"HIP_HOP");
-    scenario.next_tx(CURATOR);
-    let g2 = create_genre(&scenario, b"ELECTRONIC");
-
-    scenario.next_tx(CURATOR);
-    let genre1 = scenario.take_immutable_by_id<Genre>(g1);
-    let genre2 = scenario.take_immutable_by_id<Genre>(g2);
-    let (mut rel, cap) = mk_release(scenario.ctx());
-
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
-    scenario.next_epoch(CURATOR); // only one epoch — still locked
-    rg::set_primary_genre(&mut rel, &cap, &genre2, scenario.ctx());
 
     ts::return_immutable(genre1);
     ts::return_immutable(genre2);
@@ -187,7 +157,7 @@ fun add_and_remove_secondary_genres() {
     let (mut rel, cap) = mk_release(scenario.ctx());
     let release_id = rel.id();
 
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
     rg::add_secondary_genre(&mut rel, &cap, &genre2);
     rg::add_secondary_genre(&mut rel, &cap, &genre3);
     assert!(rg::secondary_genres(&rel) == vector[g2, g3]);
@@ -279,7 +249,7 @@ fun remove_non_secondary_aborts() {
     let genre2 = scenario.take_immutable_by_id<Genre>(g2);
     let (mut rel, cap) = mk_release(scenario.ctx());
 
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
     rg::remove_secondary_genre(&mut rel, &cap, &genre2); // g2 was never added
 
     ts::return_immutable(genre1);
@@ -309,7 +279,7 @@ fun max_secondary_genres_exceeded_aborts() {
     let (mut rel, cap) = mk_release(scenario.ctx());
 
     // genres[0] is the primary; genres[1..6] are exactly the max (5) secondaries.
-    rg::set_primary_genre(&mut rel, &cap, &genres[0], scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genres[0]);
     let mut i: u64 = 1;
     while (i <= 5u64) {
         rg::add_secondary_genre(&mut rel, &cap, &genres[i]);
@@ -338,7 +308,7 @@ fun secondary_equal_primary_aborts() {
     let genre1 = scenario.take_immutable_by_id<Genre>(g1);
     let (mut rel, cap) = mk_release(scenario.ctx());
 
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
     rg::add_secondary_genre(&mut rel, &cap, &genre1); // same as primary
 
     ts::return_immutable(genre1);
@@ -362,11 +332,9 @@ fun primary_equal_secondary_aborts() {
     let genre2 = scenario.take_immutable_by_id<Genre>(g2);
     let (mut rel, cap) = mk_release(scenario.ctx());
 
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
     rg::add_secondary_genre(&mut rel, &cap, &genre2);
-    // Wait out the hold period, then try to promote the secondary to primary.
-    30u64.do!(|_| { scenario.next_epoch(CURATOR); });
-    rg::set_primary_genre(&mut rel, &cap, &genre2, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre2);
 
     ts::return_immutable(genre1);
     ts::return_immutable(genre2);
@@ -390,10 +358,8 @@ fun former_primary_becomes_secondary() {
     let genre2 = scenario.take_immutable_by_id<Genre>(g2);
     let (mut rel, cap) = mk_release(scenario.ctx());
 
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
-    // Wait out the hold period, then change the primary to g2.
-    30u64.do!(|_| { scenario.next_epoch(CURATOR); });
-    rg::set_primary_genre(&mut rel, &cap, &genre2, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
+    rg::set_primary_genre(&mut rel, &cap, &genre2);
     assert_eq!(rg::primary_genre(&rel), option::some(g2));
     assert!(rg::secondary_genres(&rel).is_empty());
     // The former primary is no longer the primary, so it can be a secondary.
@@ -423,7 +389,7 @@ fun duplicate_secondary_aborts() {
     let genre2 = scenario.take_immutable_by_id<Genre>(g2);
     let (mut rel, cap) = mk_release(scenario.ctx());
 
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
     rg::add_secondary_genre(&mut rel, &cap, &genre2);
     rg::add_secondary_genre(&mut rel, &cap, &genre2); // duplicate
 
@@ -452,7 +418,7 @@ fun track_override_resolves_over_album() {
     let (mut rel, cap) = mk_release(scenario.ctx());
     let release_id = rel.id();
 
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
     // Override track 1 to g2; track 0 still inherits the album primary g1.
     rg::set_track_primary_genre(&mut rel, &cap, 1, &genre2);
     assert!(rg::track_primary_genre(&rel, 0) == option::some(g1));
@@ -522,7 +488,7 @@ fun track_override_out_of_bounds_aborts() {
     let genre1 = scenario.take_immutable_by_id<Genre>(g1);
     let (mut rel, cap) = mk_release(scenario.ctx());
 
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
     rg::set_track_primary_genre(&mut rel, &cap, 2, &genre1); // 2 tracks -> index 2 invalid
 
     ts::return_immutable(genre1);
@@ -560,7 +526,7 @@ fun unset_track_override_out_of_bounds_aborts() {
     let genre1 = scenario.take_immutable_by_id<Genre>(g1);
     let (mut rel, cap) = mk_release(scenario.ctx());
 
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
     rg::unset_track_primary_genre(&mut rel, &cap, 2); // 2 tracks -> index 2 invalid
 
     ts::return_immutable(genre1);
@@ -583,7 +549,7 @@ fun track_primary_genre_view_out_of_bounds_aborts() {
     let (mut rel, cap) = mk_release(scenario.ctx());
 
     // Once an assignment exists, the view's own bounds check applies.
-    rg::set_primary_genre(&mut rel, &cap, &genre1, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &genre1);
     let _ = rg::track_primary_genre(&rel, 2); // 2 tracks -> index 2 invalid
 
     ts::return_immutable(genre1);

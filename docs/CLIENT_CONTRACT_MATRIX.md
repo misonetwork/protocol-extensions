@@ -17,30 +17,45 @@ Reviewed packages:
 | Revenue primitives | `royalty_pool`, `routed_stake` |
 | Authority | `vault` and the four `vault-plugins` packages |
 
-All 22 packages compile and their Move tests pass (336 tests total). The sole
-warning is an unused mutable test variable in `release_genre`; it does not
-change source ABI or test outcomes.
+All 22 packages compile and their Move tests pass (386 tests total: 50 core
+tests plus 336 across the other reviewed packages). The sole warning is an
+unused mutable test variable in `release_genre`; it does not change source ABI
+or test outcomes.
 
 ## Client-wide rules
 
 - Every `ctx: &mut TxContext` below is runtime-injected. Do **not** add a
   transaction argument for it in TypeScript.
 - Core, metadata, registry, pool, routed-stake, and vault functions are
-  `public`. The state-changing vault-plugin functions are `entry` endpoints.
-  Treat the latter as standalone transaction endpoints: they return no PTB
-  value and must not be used as composable constructors.
+  `public`. The state-changing vault-plugin functions are **private `entry`
+  endpoints**: transactions may use them as commands in multi-command PTBs,
+  but other Move packages cannot call them and they return no PTB value.
 - A `&mut` parameter is a mutable transaction object input. Published core
-  objects, registries, pools, routed stakes, and vaults are shared objects;
-  their matching `*AdminCap` is address-owned and must be selected from the
-  caller's owned objects.
+  objects, registries, pools, routed stakes, and vaults are shared objects.
+  An uncustodied matching `*AdminCap` is address-owned and must be selected
+  from the caller's owned objects. Once it is passed by value to `vault::new`,
+  that core cap is held inside the shared vault; the distinct `VaultAdminCap`
+  is the address-owned administrator credential.
 - `Balance<T>`, fresh core objects, `Stake<T>`, `RoyaltyPool<...>`,
   `RoutedStake<...>`, `Vault<T>`, and `Borrow` receipts are non-drop values.
   A PTB must consume each one as noted below. Never use a plain move call that
   leaves one unconsumed.
-- Values returned by read functions are Move/BCS values, not an RPC "view"
-  API. Clients normally read shared object JSON/BCS, dynamic fields, and
-  events. In particular, `u64`, `u128`, and `u256` must remain lossless
-  strings/bigints in the SDK boundary.
+
+### Move references are not TypeScript results
+
+The source exposes both transaction/value functions and Move-to-Move helpers.
+Any signature returning a reference—such as `&UID`, `&String`, `&vector<T>`,
+`&VecMap<...>`, `&Balance<T>`, `&Stake<T>`, or a mutable reference—is only
+usable inside Move. A TypeScript PTB cannot receive that reference as a result,
+and no direct RPC "view" call exists for it. Generate no client helper that
+expects these reference-returning functions to yield a JavaScript value.
+
+Functions returning value types (`ID`, `bool`, integers, `String`,
+`Option<T>`, and copyable value structs) can be transaction command results,
+but are still not synchronous TypeScript return values. Clients normally read
+shared object JSON/BCS, dynamic fields, and events; use simulation only where a
+specific value-returning Move call is deliberately part of the client design.
+Keep `u64`, `u128`, and `u256` lossless as strings/bigints at the SDK boundary.
 
 ### Publication dependency order
 
@@ -96,14 +111,14 @@ title<CS>(&Composition<CS>) -> &String
 royalty_rate<CS>(&Composition<CS>) -> BPS
 uid<CS>(&Composition<CS>) -> &UID
 uid_mut<CS>(&mut Composition<CS>, &CompositionAdminCap<CS>) -> &mut UID
-is_initialized_state<CS>(&Composition<CS>) -> bool
-is_published_state<CS>(&Composition<CS>) -> bool
 ```
 
 The returned composition and its admin cap are PTB-local. Publish the former,
-transfer the cap to its eventual owner or custody it in a vault, and consume the
-returned share balance (for example, convert it to a coin and transfer it).
-The royalty rate is immutable after `new`; `bps::new` permits `0..=10_000`.
+then either transfer the **core** admin cap to its owner or pass that cap by
+value to `vault::new`; the latter puts the core cap inside the vault and returns
+a distinct `VaultAdminCap` for the owner. Consume the returned share balance
+(for example, convert it to a coin and transfer it). The royalty rate is
+immutable after `new`; `bps::new` permits `0..=10_000`.
 
 ### `miso::recording`
 
@@ -129,8 +144,6 @@ composition_id<RS, CS>(&Recording<RS, CS>) -> ID
 id<RS, CS>(&Recording<RS, CS>) -> ID
 uid<RS, CS>(&Recording<RS, CS>) -> &UID
 uid_mut<RS, CS>(&mut Recording<RS, CS>, &RecordingAdminCap<RS>) -> &mut UID
-is_initialized_state<RS, CS>(&Recording<RS, CS>) -> bool
-is_published_state<RS, CS>(&Recording<RS, CS>) -> bool
 ```
 
 The new recording is paired to its composition by phantom type and now embeds
@@ -153,8 +166,6 @@ recording_id(&Track) -> ID
 composition_id(&Track) -> ID
 split_bps(&Track) -> BPS
 target_release_id(&Track) -> ID
-is_assigned_state(&Track) -> bool
-is_unassigned_state(&Track) -> bool
 ```
 
 Clients must compute the same target release ID, create all tracks with that
@@ -186,8 +197,6 @@ tracks(&Release) -> &vector<Track>
 release_admin_cap_release_id(&ReleaseAdminCap) -> ID
 uid(&Release) -> &UID
 uid_mut(&mut Release, &ReleaseAdminCap) -> &mut UID
-is_initialized_state(&Release) -> bool
-is_published_state(&Release) -> bool
 ```
 
 Use the registry flow below for ordinary client release creation. The core
@@ -228,11 +237,26 @@ path that attempted to supply a parent UID directly.
 
 ## Metadata extensions
 
-All metadata is a dynamic field on the core object's UID. `ExtensionKey` is
-defined by the specific extension package, so clients must construct dynamic
-field queries with that package's eventual type ID. Absence is meaningful:
-guard reads that the source marks as aborting with a corresponding `has_*`
-call. Every mutator below returns `()`.
+All metadata is a dynamic field on the core object's UID. With one exception,
+the field name is the `ExtensionKey` defined by that specific extension
+package, so clients must construct dynamic-field queries with that package's
+eventual type ID. Absence is meaningful: guard reads that the source marks as
+aborting with a corresponding `has_*` call. Every mutator below returns `()`.
+
+`release_dsp_link` does **not** use `ExtensionKey`. Its parent for both query
+families is the Release UID (therefore the Release object ID), and its dynamic
+field names/values are:
+
+```move
+ReleaseLinkKey(platform: u8) -> DspLinkData
+TrackLinksKey(platform: u8) -> PerTrack<Option<DspLinkData>>
+```
+
+Use the eventual `release_dsp_link` package ID in either key type. The track
+value is one inline `PerTrack<Option<DspLinkData>>` dynamic-field value; it is
+not a second dynamic-field collection, so do not query it under a collection
+UID. `release_link` and `track_link` are Move value helpers, while off-chain
+clients should query/decode these dynamic fields or consume their events.
 
 Abbreviations used only in this table:
 
@@ -372,7 +396,11 @@ registration_last_claim_index(&Registration) -> u256
 `Stake<Share> has key, store`; `Registration has copy, drop, store` with
 `pool_id: ID` and `last_claim_index: u256`. Events are
 `StakeCreatedEvent<Share> { stake_id, amount }` and
-`StakeDestroyedEvent<Share> { stake_id, amount }`.
+`StakeDestroyedEvent<Share> { stake_id, amount }`. A fresh `Stake` returned by
+`new` is a non-drop owned object: register it with a pool and then transfer it
+to its holder in the same PTB, or transfer it directly. Do not leave it as an
+unused move-call result. Conversely, `destroy` returns a non-drop balance that
+must be consumed (for example, converted to a coin or deposited) in that PTB.
 
 ### `royalty_pool::pool`
 
@@ -447,6 +475,9 @@ derived_address<StakeShare>(parent_id: ID) -> address
 assert_derived_from<StakeShare, PoolShare>(&RoutedStake<StakeShare, PoolShare>, ID)
 ```
 
+`new` returns a key-only, non-drop routed stake. Its only public by-value
+consumer is `share`, so a direct client call must share it in the same PTB;
+`composition_routed_stake::create_stake` already performs that consumption.
 `unstake` returns a non-drop balance. `sweep` is permissionless but can only
 route rewards to the specified parent-derived pool. Events are
 `RoutedStakeCreatedEvent { routed_stake_id, parent_id, staked_value }`,
@@ -477,10 +508,14 @@ authorized_plugin_count(&Vault<Cap>) -> u64
 is_plugin_authorized<Cap: key + store, Witness: drop>(&Vault<Cap>) -> bool
 ```
 
-`Vault<Cap> has key` and deliberately lacks `store`; create it from a core
-admin cap, share it, and retain/transfer `VaultAdminCap<Cap>`. Both borrow
-functions return a `(Cap, Borrow)` hot-potato pair that must go directly to
-`put_back` in the same PTB. Events:
+`Vault<Cap> has key` and deliberately lacks `store`. `vault::new` consumes the
+supplied core admin cap by value and stores it in a `Referent`; it does **not**
+leave that core cap address-owned. Share the returned vault and retain/transfer
+the distinct `VaultAdminCap<Cap>` to its administrator. Both borrow functions
+return a `(Cap, Borrow)` hot-potato pair that must go directly to `put_back` in
+the same PTB. `destroy` consumes both the vault and `VaultAdminCap`, then
+returns the non-drop custodied `Cap`; that returned cap must be transferred,
+re-vaulted, or otherwise consumed in the same PTB. Events:
 
 ```move
 VaultCreatedEvent<Cap> {
@@ -493,17 +528,148 @@ VaultDestroyedEvent<Cap> { vault_id, wrapped_cap_id }
 
 ### Vault-plugin transaction endpoints
 
-Every operation in this table is an `entry` function returning `()`; its
-plugin `Witness` is constructed package-internally. `install` and `uninstall`
-require the matching address-owned `VaultAdminCap`; crank operations do not,
-but require an installed plugin and the specified shared objects.
+Every state-changing operation below is a **private `entry` function** returning
+`()`. A plugin `Witness` is constructed package-internally. These endpoints may
+be commands in a multi-command PTB, but cannot be Move-called by another
+package and produce no result for a subsequent PTB command. `install` and
+`uninstall` require the matching address-owned `VaultAdminCap`; crank
+operations do not, but require an installed plugin and the specified shared
+objects. `ctx` remains runtime-injected.
 
-| Plugin module | Exact entry ABI | Public read ABI |
-| --- | --- | --- |
-| `composition_royalty_pool::composition_royalty_pool` | `install<CS>(&mut Vault<CompositionAdminCap<CS>>, &VaultAdminCap<CompositionAdminCap<CS>>)`; matching `uninstall`; `initialize_pool<CS,Currency>(vault, &mut Composition<CS>, vault_admin_cap)`; `receive_and_deposit<CS,Currency>(vault, &mut Composition<CS>, &mut RoyaltyPool<CS,Currency>, vector<Receiving<Coin<Currency>>>)`; `redeem_and_deposit<CS,Currency>(vault, &mut Composition<CS>, &mut RoyaltyPool<CS,Currency>, value: u64)` | `is_installed<CS>(&Vault<CompositionAdminCap<CS>>) -> bool`; `pool_address<CS,Currency>(&Composition<CS>) -> address` |
-| `recording_royalty_pool::recording_royalty_pool` | `install<RS>(&mut Vault<RecordingAdminCap<RS>>, &VaultAdminCap<RecordingAdminCap<RS>>)`; matching `uninstall`; `initialize_pool<RS,CS,Currency>(vault, &mut Recording<RS,CS>, vault_admin_cap)`; `receive_and_deposit<RS,CS,Currency>(vault, &mut Recording<RS,CS>, &mut RoyaltyPool<RS,Currency>, vector<Receiving<Coin<Currency>>>)`; matching `redeem_and_deposit(..., value: u64)` | `is_installed<RS>(&Vault<RecordingAdminCap<RS>>) -> bool`; `pool_address<RS,CS,Currency>(&Recording<RS,CS>) -> address` |
-| `composition_routed_stake::composition_routed_stake` | `install<CS>(composition-admin vault, vault admin)`; matching `uninstall`; `create_stake<RS,CS>(vault, &mut Composition<CS>, &Recording<RS,CS>, vault_admin_cap, value: u64, ctx)`; `register<RS,CS,Currency>(vault, &mut Composition<CS>, &Recording<RS,CS>, &mut RoutedStake<RS,CS>, &mut RoyaltyPool<RS,Currency>, vault_admin_cap)`; `unregister<RS,CS,Currency>(vault, &mut Composition<CS>, &mut RoutedStake<RS,CS>, &mut RoyaltyPool<RS,Currency>, vault_admin_cap)`; `unstake<RS,CS>(vault, &mut Composition<CS>, &mut RoutedStake<RS,CS>, vault_admin_cap)`; `restake<RS,CS>(vault, &mut Composition<CS>, &mut RoutedStake<RS,CS>, vault_admin_cap, value: u64, ctx)` | `is_installed<CS>(&Vault<CompositionAdminCap<CS>>) -> bool`; `stake_address<RS,CS>(&Composition<CS>) -> address` |
-| `release_revenue_distributor::release_revenue_distributor` | `install(&mut Vault<ReleaseAdminCap>, &VaultAdminCap<ReleaseAdminCap>)`; matching `uninstall`; `redeem_and_distribute<Currency>(&mut Vault<ReleaseAdminCap>, &mut Release, value: u64)`; `receive_and_distribute<Currency>(&mut Vault<ReleaseAdminCap>, &mut Release, vector<Receiving<Coin<Currency>>>)` | `is_installed(&Vault<ReleaseAdminCap>) -> bool` |
+#### `composition_royalty_pool::composition_royalty_pool`
+
+```move
+install<CS>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &VaultAdminCap<CompositionAdminCap<CS>>
+)
+uninstall<CS>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &VaultAdminCap<CompositionAdminCap<CS>>
+)
+initialize_pool<CS, Currency>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &mut Composition<CS>,
+  &VaultAdminCap<CompositionAdminCap<CS>>
+)
+receive_and_deposit<CS, Currency>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &mut Composition<CS>,
+  &mut RoyaltyPool<CS, Currency>,
+  vector<Receiving<Coin<Currency>>>
+)
+redeem_and_deposit<CS, Currency>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &mut Composition<CS>,
+  &mut RoyaltyPool<CS, Currency>,
+  value: u64
+)
+
+is_installed<CS>(&Vault<CompositionAdminCap<CS>>) -> bool
+pool_address<CS, Currency>(&Composition<CS>) -> address
+```
+
+#### `recording_royalty_pool::recording_royalty_pool`
+
+```move
+install<RS>(
+  &mut Vault<RecordingAdminCap<RS>>,
+  &VaultAdminCap<RecordingAdminCap<RS>>
+)
+uninstall<RS>(
+  &mut Vault<RecordingAdminCap<RS>>,
+  &VaultAdminCap<RecordingAdminCap<RS>>
+)
+initialize_pool<RS, CS, Currency>(
+  &mut Vault<RecordingAdminCap<RS>>,
+  &mut Recording<RS, CS>,
+  &VaultAdminCap<RecordingAdminCap<RS>>
+)
+receive_and_deposit<RS, CS, Currency>(
+  &mut Vault<RecordingAdminCap<RS>>,
+  &mut Recording<RS, CS>,
+  &mut RoyaltyPool<RS, Currency>,
+  vector<Receiving<Coin<Currency>>>
+)
+redeem_and_deposit<RS, CS, Currency>(
+  &mut Vault<RecordingAdminCap<RS>>,
+  &mut Recording<RS, CS>,
+  &mut RoyaltyPool<RS, Currency>,
+  value: u64
+)
+
+is_installed<RS>(&Vault<RecordingAdminCap<RS>>) -> bool
+pool_address<RS, CS, Currency>(&Recording<RS, CS>) -> address
+```
+
+#### `composition_routed_stake::composition_routed_stake`
+
+```move
+install<CS>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &VaultAdminCap<CompositionAdminCap<CS>>
+)
+uninstall<CS>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &VaultAdminCap<CompositionAdminCap<CS>>
+)
+create_stake<RS, CS>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &mut Composition<CS>,
+  &Recording<RS, CS>,
+  &VaultAdminCap<CompositionAdminCap<CS>>,
+  value: u64,
+  ctx: &mut TxContext
+)
+register<RS, CS, Currency>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &mut Composition<CS>,
+  &Recording<RS, CS>,
+  &mut RoutedStake<RS, CS>,
+  &mut RoyaltyPool<RS, Currency>,
+  &VaultAdminCap<CompositionAdminCap<CS>>
+)
+unregister<RS, CS, Currency>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &mut Composition<CS>,
+  &mut RoutedStake<RS, CS>,
+  &mut RoyaltyPool<RS, Currency>,
+  &VaultAdminCap<CompositionAdminCap<CS>>
+)
+unstake<RS, CS>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &mut Composition<CS>,
+  &mut RoutedStake<RS, CS>,
+  &VaultAdminCap<CompositionAdminCap<CS>>
+)
+restake<RS, CS>(
+  &mut Vault<CompositionAdminCap<CS>>,
+  &mut Composition<CS>,
+  &mut RoutedStake<RS, CS>,
+  &VaultAdminCap<CompositionAdminCap<CS>>,
+  value: u64,
+  ctx: &mut TxContext
+)
+
+is_installed<CS>(&Vault<CompositionAdminCap<CS>>) -> bool
+stake_address<RS, CS>(&Composition<CS>) -> address
+```
+
+#### `release_revenue_distributor::release_revenue_distributor`
+
+```move
+install(&mut Vault<ReleaseAdminCap>, &VaultAdminCap<ReleaseAdminCap>)
+uninstall(&mut Vault<ReleaseAdminCap>, &VaultAdminCap<ReleaseAdminCap>)
+redeem_and_distribute<Currency>(
+  &mut Vault<ReleaseAdminCap>, &mut Release, value: u64
+)
+receive_and_distribute<Currency>(
+  &mut Vault<ReleaseAdminCap>, &mut Release,
+  vector<Receiving<Coin<Currency>>>
+)
+
+is_installed(&Vault<ReleaseAdminCap>) -> bool
+```
 
 The release distributor emits:
 

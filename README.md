@@ -1,102 +1,74 @@
 # Miso Protocol Extensions
 
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](#license)
-[![Move](https://img.shields.io/badge/Move-2024-black.svg)](https://docs.sui.io/concepts/sui-move-concepts)
+First-party data-model extensions for
+[`misonetwork/protocol`](https://github.com/misonetwork/protocol) on Sui.
 
-> A monorepo of first-party extension packages for the [Miso protocol](https://github.com/misonetwork/miso-protocol) on [Sui](https://sui.io), maintained by Miso.
+Miso keeps `Composition`, `Recording`, and `Release` focused on constitutive
+protocol state. An extension adds optional typed data as a dynamic field on one
+of those objects. Writes require the object's matching admin capability through
+its cap-gated `uid_mut`; reads are permissionless.
 
-Miso keeps its core objects — `Composition`, `Recording`, `Release` — lean: only protocol-verifiable, constitutive state lives on them. **Extensions** add data to those objects through their cap-gated `&mut UID` surface without changing who controls them. **Plugins** add business logic by installing on a [vault](https://github.com/misofm/vault) that custodies the object's admin cap; an installed plugin must present its private, transaction-local witness before the vault will expose the object's `&mut UID`. **Utilities** provide standalone protocol infrastructure without attaching a schema or taking custody of authority.
+Extensions do not custody capabilities, automate administrative authority, or
+route economic value. Those responsibilities belong to separate layers:
 
-In short: extensions extend the data model; plugins extend the authority model;
-utilities support the protocol without extending either.
+| Repository | Responsibility |
+|------------|----------------|
+| [`misofm/vault`](https://github.com/misofm/vault) | Generic capability custody and temporary exact-return leases. |
+| [`misofm/vault-plugins`](https://github.com/misofm/vault-plugins) | Installed business logic that exercises a custodied protocol admin capability. |
+| [`misonetwork/protocol-utilities`](https://github.com/misonetwork/protocol-utilities) | Standalone protocol infrastructure that neither attaches data nor borrows authority. |
 
-First-party plugin packages are maintained separately in
-[`misofm/vault-plugins`](https://github.com/misofm/vault-plugins) while their
-review and scoring model is developed. Every plugin package has one canonical
-installation identity at `0xpkg::witness::Witness`. The type has only `drop`,
-and a package-only `witness::new()` lets the plugin's internal modules construct
-it without exposing construction to downstream packages.
-
-Standalone protocol utilities, including the canonical release derivation
-registry, live in
-[`misonetwork/protocol-utilities`](https://github.com/misonetwork/protocol-utilities).
-
-Each package in this repo is independent and published separately — depend on only the ones you need. **For how a given extension works, see its own `README.md`** (linked below); this page stays at the monorepo level.
+Each directory in this repository is an independently versioned and published
+Move package. Applications should depend only on the extensions they use.
 
 ## Packages
 
-| Package | Attaches to | Summary |
-|---------|-------------|---------|
-| [`composition_credits`](./composition_credits) | `Composition` | Canonical writing-credits (attribution) standard: party-keyed songwriting / publishing credits. |
-| [`recording_credits`](./recording_credits) | `Recording` | Per-party performance credits (display name + roles) plus primary/featured artist designations. |
-| [`release_credits`](./release_credits) | `Release` | Top-line release billing (primary / featured artists). |
-| [`recording_preview`](./recording_preview) | `Recording` | Public audio preview clip — a single Walrus blob reference, cap-gated writes, no ingestion/attestation in V1. |
-| [`cover_art`](./cover_art) | `Release` | Evolvable cover-art metadata (still image + optional animation) referencing Walrus storage. |
-| [`release_snapshot_bundle`](./release_snapshot_bundle) | `Release` | Write-once pointer to the release's snapshot-bundle quilt (curated bonus material on Walrus) — no unset or replace, so a buyer's bundle can never be swapped. |
-| [`release_genre`](./release_genre) | `Release` | Pure release metadata: one primary genre, secondary genres, and optional per-track primary overrides. |
-| [`release_description`](./release_description) | `Release` | The release's own words about itself — one free-text slot (≤ 8 KB), set and cleared under the release admin cap. |
-| [`release_dsp_link`](./release_dsp_link) | `Release` | External DSP (streaming platform) deep links for a release — album-level and per-track, one built-in enum covering all 8 supported platforms (Spotify, Apple Music, Amazon Music, Bandcamp, Deezer, SoundCloud, Tidal, YouTube Music). |
+| Package | Target | Purpose |
+|---------|--------|---------|
+| [`composition_credits`](./composition_credits) | Composition | Songwriting and publishing attribution keyed by Party ID. |
+| [`recording_advisory`](./recording_advisory) | Recording | Explicit, not-explicit, or cleaned advisory classification. |
+| [`recording_credits`](./recording_credits) | Recording | Performance and production credits with primary and featured artist designations. |
+| [`recording_language`](./recording_language) | Recording | Ordered ISO 639-1 language metadata; an empty list explicitly denotes instrumental content. |
+| [`recording_master_reference`](./recording_master_reference) | Recording | Transitional, unverified Walrus reference to a master-audio blob. |
+| [`recording_preview`](./recording_preview) | Recording | Public Walrus reference to a preview-audio blob. |
+| [`release_cover_art`](./release_cover_art) | Release | Release-level cover art with optional per-track overrides. |
+| [`release_credits`](./release_credits) | Release | Primary and featured top-line artist billing keyed by Party ID. |
+| [`release_description`](./release_description) | Release | Bounded free-text editorial description. |
+| [`release_dsp_link`](./release_dsp_link) | Release | Typed release and per-track identifiers for supported streaming services. |
+| [`release_genre`](./release_genre) | Release | Primary, secondary, and optional per-track genre metadata with no timing or economic policy. |
+| [`release_kind`](./release_kind) | Release | Bounded free-text release classification such as Album, EP, or Mixtape. |
+| [`release_snapshot_bundle`](./release_snapshot_bundle) | Release | Write-once Walrus reference to a curated snapshot bundle. |
 
-## Dependencies
+## Usage
 
-Extensions read Miso objects and build on independently versioned packages.
-Each package pulls in only what it uses and pins the exact dependency revision
-in its `Move.toml`.
-
-| Dependency | Used by | Role |
-|------------|---------|------|
-| [`miso`](https://github.com/misonetwork/miso-protocol) | all | Core `Composition` / `Recording` / `Release` / `Track` types and admin caps |
-| [`per_track`](https://github.com/misonetwork/per-track) | `cover_art`, `genre`, `release_dsp_link` | Per-track parallel array validated against a release's tracklist |
-| `partyos` | `*_credits` | Party identity for credit attribution |
-| [`ori`](https://github.com/unconfirmedlabs/ori) | `cover_art`, `recording_preview`, `release_snapshot_bundle` | Walrus data references |
-
-The `miso` dependency is pinned to the protocol repository by commit:
+Reference an extension by repository subdirectory and exact commit:
 
 ```toml
-miso = { git = "https://github.com/misonetwork/protocol.git", rev = "<40-character-commit>" }
+[dependencies]
+release_genre = { git = "https://github.com/misonetwork/protocol-extensions.git", subdir = "release_genre", rev = "<40-character-commit>" }
 ```
 
-## TypeScript SDK
+Each package's `Move.toml` pins its own protocol and supporting dependencies.
+If the protocol admin capability is held in a Vault, the `VaultAdminCap` holder
+can use `borrow_as_admin`, call the extension's public write function, and
+return the capability in the same programmable transaction block.
 
-[`sdk/`](./sdk) publishes [`@misonetwork/miso-extensions`](./sdk) — typed query helpers and transaction builders that mirror the Move ABI of the extensions, exposed under per-extension subpath exports:
+Published package identities are recorded per package in `Published.toml` when
+the current source is upgrade-compatible with that deployment. The simplified
+`release_genre` package intentionally requires a fresh package ID.
 
-| Import | Covers |
-|--------|--------|
-| `@misonetwork/miso-extensions/credits` | `composition_credits`, `recording_credits`, `release_credits` |
-| `@misonetwork/miso-extensions/cover-art` | `cover_art` |
-| `@misonetwork/miso-extensions/genre` | `genre` |
+## Development
 
-The core protocol's own bindings live in [`@misonetwork/miso`](https://github.com/misonetwork/miso-protocol); this package never depends on them — each extension module is self-contained.
-
-## Build & test
-
-Every directory is a standalone Move package. From any package directory:
+Run commands from the extension package directory:
 
 ```sh
+cd release_genre
 sui move build
-sui move test
+sui move test --coverage
 ```
 
-For the SDK:
-
-```sh
-cd sdk
-bun install
-bun run typecheck
-bun run codegen   # regenerate ABI bindings from the sibling Move packages
-```
-
-## Design notes
-
-- **Extensions and plugins, not forks.** These packages operate on Miso objects through their stable public interfaces; they never modify core protocol definitions, so data schemas and administration models can evolve independently of the protocol.
-- **Separate authority layer.** Economic and administrative behavior that
-  borrows a protocol admin capability lives in
-  [`misofm/vault-plugins`](https://github.com/misofm/vault-plugins), not in this
-  data-extension repository.
-- **Separate utility layer.** Standalone coordination objects that neither
-  attach data nor borrow an admin capability live in
-  [`misonetwork/protocol-utilities`](https://github.com/misonetwork/protocol-utilities).
+The test suites include production-shaped `sui::test_scenario` flows for shared
+protocol objects and focused invariant and authorization tests.
 
 ## License
 
-[Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) © Miso Labs, Inc.
+[Apache-2.0](./LICENSE)

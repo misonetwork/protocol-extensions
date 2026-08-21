@@ -13,20 +13,17 @@ Reviewed packages:
 | --- | --- |
 | Core | `miso` |
 | Metadata extensions | 13 packages in this repository |
-| Utility | `release_registry` |
 | Revenue primitives | `royalty_pool`, `routed_stake` |
 | Authority | `vault` and the four `vault-plugins` packages |
 
-All 22 packages compile and their Move tests pass (386 tests total: 50 core
-tests plus 336 across the other reviewed packages). The sole warning is an
-unused mutable test variable in `release_genre`; it does not change source ABI
-or test outcomes.
+The canonical release registry is part of the `miso` core package; there is no
+standalone `release_registry` package in the reviewed source graph.
 
 ## Client-wide rules
 
 - Every `ctx: &mut TxContext` below is runtime-injected. Do **not** add a
   transaction argument for it in TypeScript.
-- Core, metadata, registry, pool, routed-stake, and vault functions are
+- Core, metadata, pool, routed-stake, and vault functions are
   `public`. The state-changing vault-plugin functions are **private `entry`
   endpoints**: transactions may use them as commands in multi-command PTBs,
   but other Move packages cannot call them and they return no PTB value.
@@ -65,10 +62,11 @@ The source graph—not a set of concrete IDs—is:
    `partyos`, `miso_credit`, `language_code`, `ori`, `cover_art`, `per_track`,
    `genre`, and `hikida` as applicable.
 2. Publish `miso`; it is the direct source dependency of every metadata
-   extension and `release_registry`.
+   extension and creates the canonical `ReleaseRegistry` singleton in its
+   package initialization.
 3. `royalty_pool` and `vault` are independent of `miso` (apart from their own
    reusable dependencies) and may be published in parallel with step 2.
-4. Publish the 13 metadata extensions and `release_registry` after `miso`.
+4. Publish the 13 metadata extensions after `miso`.
 5. Publish `routed_stake` after `royalty_pool`.
 6. Publish authority plugins last:
    `composition_royalty_pool` and `recording_royalty_pool` need `miso`,
@@ -177,20 +175,28 @@ Public types and event:
 
 - `Release has key`, with ordered `vector<Track>`
 - `ReleaseAdminCap has key, store`, bound to `release_id`
+- `ReleaseRegistry has key`, the canonical shared release-ID namespace
 - `ReleaseState = Initialized | Published(u64)`
 - `ReleasePublishedEvent { release_id: ID }`
+- `ReleaseRegistryCreatedEvent { registry_id: ID, created_by: address }`
 
 ```move
 new(
+  &mut ReleaseRegistry,
   title: String,
   tracks: vector<Track>,
   nonce: u256,
-  parent: &mut UID,
 ) -> (Release, ReleaseAdminCap)
 
 publish(Release, &ReleaseAdminCap, &Clock)
 authorize(&Release, &ReleaseAdminCap)
-derive_target_release_id(vector<ID>, vector<u64>, u256, parent: ID) -> ID
+derive_target_release_id(
+  &ReleaseRegistry,
+  vector<ID>,
+  vector<u64>,
+  u256,
+) -> ID
+release_registry_id(&ReleaseRegistry) -> ID
 id(&Release) -> ID
 title(&Release) -> &String
 tracks(&Release) -> &vector<Track>
@@ -199,41 +205,15 @@ uid(&Release) -> &UID
 uid_mut(&mut Release, &ReleaseAdminCap) -> &mut UID
 ```
 
-Use the registry flow below for ordinary client release creation. The core
-`new` function remains public for a caller that owns a permitted parent UID,
-but is not the default application helper.
-
-### Canonical release flow: `release_registry::release_registry`
-
-`init` creates and shares the singleton `ReleaseRegistry has key` and emits:
-
-```move
-ReleaseRegistryCreatedEvent { registry_id: ID, created_by: address }
-```
-
-```move
-new_release(
-  &mut ReleaseRegistry,
-  title: String,
-  tracks: vector<Track>,
-  nonce: u256,
-) -> (Release, ReleaseAdminCap)
-
-derive_target_release_id(
-  &ReleaseRegistry,
-  recording_ids: vector<ID>,
-  track_split_values: vector<u64>,
-  nonce: u256,
-) -> ID
-
-id(&ReleaseRegistry) -> ID
-```
-
-The PTB sequence is: derive target ID using exactly ordered recording IDs and
-split values, make tracks against that target, call `new_release`, publish the
-returned release, then transfer/custody the returned admin cap. `new_release`
-already owns the registry UID; do not recreate the old client `createRelease`
-path that attempted to supply a parent UID directly.
+`miso::release` package initialization creates and shares exactly one
+`ReleaseRegistry`, emitting `ReleaseRegistryCreatedEvent`; record the object
+ID from publish effects. The PTB sequence is: derive the target ID using the
+shared registry and exactly ordered recording IDs/split values, make tracks
+against that target, call `release::new`, publish the returned release, then
+transfer or custody the returned admin cap. `release::new` is the only
+production release constructor: there is no `new_release`, standalone registry
+package, or arbitrary-parent constructor. The Move-2024 convenience method
+`registry.id()` maps to the callable `release_registry_id` ABI function.
 
 ## Metadata extensions
 
@@ -693,7 +673,7 @@ documentation:
 | `CompositionRoyaltySetEvent` and its parser/subscription | Removed. A composition has only `CompositionPublishedEvent`; index its immutable object data once. |
 | `recording::new(..., max_royalty_rate_bps, ctx)` | Removed the slippage argument. The exact current signature has only composition, share currency, treasury cap, then implicit context. |
 | Resolving composition lineage only from historical publish events | Superseded. Use `recording::composition_id` and `track::composition_id` (both are immutable source fields/accessors). |
-| Base-SDK `createRelease` helper using `release::new` directly | Superseded for normal clients by `release_registry::new_release` and its deterministic target-ID helper. |
+| Standalone `release_registry::new_release` or arbitrary-parent `release::new` helper | Superseded by `miso::release::new(&mut ReleaseRegistry, ...)` and `miso::release::derive_target_release_id(&ReleaseRegistry, ...)`. |
 | Authority/revenue calls under `protocol-extensions` | Superseded. This repository is metadata-only; use the separate `vault` and `vault-plugins` modules above. |
 
 ## Address-injection handoff

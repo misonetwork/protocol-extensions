@@ -13,9 +13,9 @@ route economic value. Those responsibilities belong to separate layers:
 
 | Repository | Responsibility |
 |------------|----------------|
+| [`misonetwork/protocol`](https://github.com/misonetwork/protocol) | Core music objects and the canonical `ReleaseRegistry` namespace. |
 | [`misofm/vault`](https://github.com/misofm/vault) | Generic capability custody and temporary exact-return leases. |
 | [`misofm/vault-plugins`](https://github.com/misofm/vault-plugins) | Installed business logic that exercises a custodied protocol admin capability. |
-| [`misonetwork/protocol-utilities`](https://github.com/misonetwork/protocol-utilities) | Standalone protocol infrastructure that neither attaches data nor borrows authority. |
 
 Each directory in this repository is an independently versioned and published
 Move package. Applications should depend only on the extensions they use.

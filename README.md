@@ -36,7 +36,6 @@ Move package. Applications should depend only on the extensions they use.
 | [`release_dsp_link`](./release_dsp_link) | Release | Typed release and per-track identifiers for supported streaming services. |
 | [`release_genre`](./release_genre) | Release | Primary, secondary, and optional per-track genre metadata with no timing or economic policy. |
 | [`release_kind`](./release_kind) | Release | Bounded free-text release classification such as Album, EP, or Mixtape. |
-| [`release_snapshot_bundle`](./release_snapshot_bundle) | Release | Write-once Walrus reference to a curated snapshot bundle. |
 
 ## Usage
 

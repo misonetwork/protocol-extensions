@@ -16,5 +16,5 @@ A snapshot bundle is one Walrus quilt, and the quilt is self-describing: a plain
 
 ## Dependencies
 
-- [`miso`](https://github.com/misonetwork/miso-protocol) — `Release` / `ReleaseAdminCap` and the cap-gated `uid_mut` extension surface.
+- [`miso`](https://github.com/misonetwork/protocol) — `Release` / `ReleaseAdminCap` and the cap-gated `uid_mut` extension surface.
 - [`ori`](https://github.com/unconfirmedlabs/ori) — the `WalrusData` reference type.

@@ -8,7 +8,8 @@ Cover art is presentation, not objective recording data, so it lives on the **re
 
 The release holds a single `ReleaseCoverArt` record: an **album-level cover** plus **per-track overrides**, a `PerTrack<Option<CoverArt>>` (one slot per track, aligned to the tracklist by construction). A track's effective cover resolves as its override if set, otherwise the album cover. All writes are gated by the `ReleaseAdminCap`; views are permissionless.
 
-The `CoverArt` value type itself lives in the `cover_art` primitive (`lib/cover_art`).
+The `CoverArt` value type is provided by the independently versioned
+[`misonetwork/cover-art`](https://github.com/misonetwork/cover-art) package.
 
 ## Entry points
 
@@ -25,7 +26,7 @@ The `CoverArt` value type itself lives in the `cover_art` primitive (`lib/cover_
 
 ## Dependencies
 
-- **`cover_art`** — the `CoverArt` value type primitive (`lib/cover_art`).
+- **`cover_art`** — the external `CoverArt` value type package.
 - **`miso`** — core protocol; provides `Release` and its admin cap + `uid_mut`/`uid` accessors.
 - **`per_track`** — the `PerTrack<Data>` primitive backing the per-track overrides.
 

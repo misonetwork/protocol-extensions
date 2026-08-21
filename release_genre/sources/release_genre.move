@@ -10,10 +10,7 @@
 /// `ReleaseAdminCap`.
 ///
 /// A track's effective primary genre resolves as: its per-track override if
-/// set, else the album primary. The album primary carries a minimum-hold
-/// (anti-churn) lock — the first set is free, later changes are throttled — so
-/// a release's declared genre stays stable enough to be reward-eligible.
-/// Per-track overrides are display refinements and are not locked.
+/// set, else the album primary.
 ///
 /// A genre is either the album primary or a secondary, never both — the two
 /// are kept disjoint: setting the primary to a current secondary aborts
@@ -32,8 +29,6 @@ use sui::event::emit;
 // State errors (30-39)
 /// An album primary genre must be set before adding secondaries or per-track overrides.
 const ENoPrimaryGenre: u64 = 30;
-/// The album primary genre is still within its minimum-hold period and cannot change yet.
-const EPrimaryGenreLocked: u64 = 31;
 
 // Conflict errors (40-49)
 /// The genre is already the album primary genre.
@@ -56,10 +51,6 @@ const ETrackIndexOutOfBounds: u64 = 50;
 
 /// Maximum number of album secondary genres.
 const MAX_SECONDARY_GENRES: u64 = 5;
-/// Minimum number of epochs between album primary-genre changes (~30 days on
-/// Sui). Throttles genre-churn so a release's declared primary stays stable
-/// enough to be reward-eligible. The first set is free; only changes are gated.
-const MIN_PRIMARY_GENRE_EPOCHS: u64 = 30;
 
 // === Structs ===
 
@@ -71,9 +62,6 @@ public struct ExtensionKey() has copy, drop, store;
 /// primary).
 public struct ReleaseGenre has store {
     primary: ID,
-    /// Epoch the album primary was last set. It cannot change again until
-    /// `MIN_PRIMARY_GENRE_EPOCHS` later (anti-churn for reward integrity).
-    primary_set_epoch: u64,
     secondary: vector<ID>,
     track_primary: PerTrack<Option<ID>>,
 }
@@ -84,8 +72,6 @@ public struct ReleaseGenre has store {
 public struct PrimaryGenreSetEvent has copy, drop {
     release_id: ID,
     genre_id: ID,
-    /// The primary is locked until `set_epoch + MIN_PRIMARY_GENRE_EPOCHS`.
-    set_epoch: u64,
 }
 
 /// Emitted when an album secondary genre is added.
@@ -118,29 +104,20 @@ public struct TrackPrimaryGenreUnsetEvent has copy, drop {
 // Album-level assignment
 
 /// Sets (or replaces) the album primary genre. Gated by the release admin cap.
-/// The first set is free; changing an existing primary requires at least
-/// `MIN_PRIMARY_GENRE_EPOCHS` to have passed since it was last set. Aborts if
-/// the genre is currently an album secondary — remove it from the secondaries
-/// first (primary and secondary are kept disjoint).
+/// Aborts if the genre is currently an album secondary — remove it from the
+/// secondaries first (primary and secondary are kept disjoint).
 public fun set_primary_genre(
     self: &mut Release,
     cap: &ReleaseAdminCap,
     genre: &Genre,
-    ctx: &TxContext,
 ) {
     let release_id = self.id();
     let genre_id = genre.id();
-    let epoch = ctx.epoch();
 
     if (df::exists(self.uid(), ExtensionKey())) {
         let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
-        assert!(
-            epoch >= assignment.primary_set_epoch + MIN_PRIMARY_GENRE_EPOCHS,
-            EPrimaryGenreLocked,
-        );
         assert!(!assignment.secondary.contains(&genre_id), EPrimaryIsSecondary);
         assignment.primary = genre_id;
-        assignment.primary_set_epoch = epoch;
     } else {
         // First set: size the per-track overrides to the tracklist (all empty).
         let track_primary = per_track::filled(self, option::none<ID>());
@@ -149,14 +126,13 @@ public fun set_primary_genre(
             ExtensionKey(),
             ReleaseGenre {
                 primary: genre_id,
-                primary_set_epoch: epoch,
                 secondary: vector[],
                 track_primary,
             },
         );
     };
 
-    emit(PrimaryGenreSetEvent { release_id, genre_id, set_epoch: epoch });
+    emit(PrimaryGenreSetEvent { release_id, genre_id });
 }
 
 /// Adds an album secondary genre. Requires the album primary first. Rejects a
@@ -269,8 +245,8 @@ public fun track_primary_genre(self: &Release, track_index: u64): Option<ID> {
 // than just "an event fired".
 
 #[test_only]
-public fun primary_genre_set_event_fields(event: &PrimaryGenreSetEvent): (ID, ID, u64) {
-    (event.release_id, event.genre_id, event.set_epoch)
+public fun primary_genre_set_event_fields(event: &PrimaryGenreSetEvent): (ID, ID) {
+    (event.release_id, event.genre_id)
 }
 
 #[test_only]

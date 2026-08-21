@@ -99,7 +99,7 @@ fun genre_lifecycle_on_published_shared_release() {
     let electronic = scenario.take_immutable_by_id<Genre>(electronic_id);
 
     assert!(!rg::has_genre(&rel));
-    rg::set_primary_genre(&mut rel, &cap, &hiphop, scenario.ctx());
+    rg::set_primary_genre(&mut rel, &cap, &hiphop);
     rg::add_secondary_genre(&mut rel, &cap, &electronic);
     rg::set_track_primary_genre(&mut rel, &cap, 1, &electronic);
 
@@ -111,11 +111,10 @@ fun genre_lifecycle_on_published_shared_release() {
     // Full event payloads, pinned against the real (post-publish) release id.
     let primary_events = event::events_by_type<rg::PrimaryGenreSetEvent>();
     assert_eq!(primary_events.length(), 1);
-    let (p_release_id, p_genre_id, p_epoch) =
+    let (p_release_id, p_genre_id) =
         rg::primary_genre_set_event_fields(&primary_events[0]);
     assert_eq!(p_release_id, release_id);
     assert_eq!(p_genre_id, hiphop_id);
-    assert_eq!(p_epoch, scenario.ctx().epoch());
 
     let secondary_events = event::events_by_type<rg::SecondaryGenreAddedEvent>();
     assert_eq!(secondary_events.length(), 1);
@@ -163,7 +162,7 @@ fun wrong_cap_from_other_release_aborts() {
     scenario.next_tx(STRANGER);
     let mut rel_a = scenario.take_shared_by_id<Release>(release_id_a);
     let hiphop = scenario.take_immutable_by_id<Genre>(hiphop_id);
-    rg::set_primary_genre(&mut rel_a, &cap_b, &hiphop, scenario.ctx()); // aborts: wrong cap
+    rg::set_primary_genre(&mut rel_a, &cap_b, &hiphop); // aborts: wrong cap
 
     // Unreachable, but the compiler requires all non-drop values consumed on
     // any path that returns normally; this path never does.

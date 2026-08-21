@@ -9,11 +9,12 @@ Miso keeps its core objects — `Composition`, `Recording`, `Release` — lean: 
 
 In short: extensions extend the data model; plugins extend the authority model.
 
-First-party plugin packages are maintained separately in a private repository
-while their review and scoring model is developed. Every plugin package has
-one canonical installation identity at `0xpkg::witness::Witness`. The type has
-only `drop`, and a package-only `witness::new()` lets the plugin's internal
-modules construct it without exposing construction to downstream packages.
+First-party plugin packages are maintained separately in
+[`misofm/vault-plugins`](https://github.com/misofm/vault-plugins) while their
+review and scoring model is developed. Every plugin package has one canonical
+installation identity at `0xpkg::witness::Witness`. The type has only `drop`,
+and a package-only `witness::new()` lets the plugin's internal modules construct
+it without exposing construction to downstream packages.
 
 Each package in this repo is independent and published separately — depend on only the ones you need. **For how a given extension works, see its own `README.md`** (linked below); this page stays at the monorepo level.
 
@@ -21,10 +22,6 @@ Each package in this repo is independent and published separately — depend on 
 
 | Package | Attaches to | Summary |
 |---------|-------------|---------|
-| [`release_revenue_distributor`](./release_revenue_distributor) | `Release` | Splits a release's revenue across its tracks by each track's `split_bps` and forwards each share to the derived address of that track's recording royalty pool. |
-| [`recording_royalty_pool`](./recording_royalty_pool) | `Recording` | Cap-gated royalty pool that lets a recording's share-token holders stake and claim its inbound revenue pro-rata. |
-| [`composition_royalty_pool`](./composition_royalty_pool) | `Composition` | The same stake-and-claim pool model, for compositions. |
-| [`composition_routed_stake`](./composition_routed_stake) | `Composition` | Lets a composition custody and earn on the recording shares it owns, with earnings permissionlessly swept into the composition's own royalty pool. |
 | [`composition_credits`](./composition_credits) | `Composition` | Canonical writing-credits (attribution) standard: party-keyed songwriting / publishing credits. |
 | [`recording_credits`](./recording_credits) | `Recording` | Per-party performance credits (display name + roles) plus primary/featured artist designations. |
 | [`release_credits`](./release_credits) | `Release` | Top-line release billing (primary / featured artists). |
@@ -37,22 +34,21 @@ Each package in this repo is independent and published separately — depend on 
 
 ## Dependencies
 
-Extensions read Miso objects and build on a few shared primitives. Each package pulls in only what it uses. The extension-only primitives (`royalty_pool`, `routed_stake`, `per_track`) are vendored in [`lib/`](./lib); the rest are external git dependencies.
+Extensions read Miso objects and build on independently versioned packages.
+Each package pulls in only what it uses and pins the exact dependency revision
+in its `Move.toml`.
 
 | Dependency | Used by | Role |
 |------------|---------|------|
 | [`miso`](https://github.com/misonetwork/miso-protocol) | all | Core `Composition` / `Recording` / `Release` / `Track` types and admin caps |
-| [`royalty_pool`](./lib/royalty_pool) | royalty pools, `composition_routed_stake` | Stake-and-claim royalty pool primitive |
-| [`routed_stake`](./lib/routed_stake) | `composition_routed_stake` | Shared stake whose rewards are committed to its parent's royalty pool |
-| [`per_track`](./lib/per_track) | `cover_art`, `genre`, `release_dsp_link` | Per-track parallel array validated against a release's tracklist |
-| `hikida` | royalty pools, `composition_routed_stake`, `release_revenue_distributor` | Balance accumulator for the `redeem_*` paths |
+| [`per_track`](https://github.com/misonetwork/per-track) | `cover_art`, `genre`, `release_dsp_link` | Per-track parallel array validated against a release's tracklist |
 | `partyos` | `*_credits` | Party identity for credit attribution |
 | [`ori`](https://github.com/unconfirmedlabs/ori) | `cover_art`, `recording_preview`, `release_snapshot_bundle` | Walrus data references |
 
-The `miso` dependency resolves to the sibling `miso-protocol` checkout (`../../miso-protocol`). To build against the published protocol instead, point it at the git source:
+The `miso` dependency is pinned to the protocol repository by commit:
 
 ```toml
-miso = { git = "https://github.com/misonetwork/miso-protocol.git", subdir = "move", rev = "main" }
+miso = { git = "https://github.com/misonetwork/protocol.git", rev = "<40-character-commit>" }
 ```
 
 ## TypeScript SDK
@@ -88,8 +84,10 @@ bun run codegen   # regenerate ABI bindings from the sibling Move packages
 ## Design notes
 
 - **Extensions and plugins, not forks.** These packages operate on Miso objects through their stable public interfaces; they never modify core protocol definitions, so data schemas and administration models can evolve independently of the protocol.
-- **Address-as-inbox.** Every composition and recording has a stable on-chain address that acts as a permanent inbox — payers need only the object ID, and funds can arrive before any pool exists; the admin folds them in later.
-- **Push vs. pull.** `release_revenue_distributor` is a *push* split (revenue fans out to works at distribution time); the `*_royalty_pool` packages are *pull* claims (holders stake and withdraw over time).
+- **Separate authority layer.** Economic and administrative behavior that
+  borrows a protocol admin capability lives in
+  [`misofm/vault-plugins`](https://github.com/misofm/vault-plugins), not in this
+  data-extension repository.
 
 ## License
 

@@ -37,8 +37,8 @@ const STRANGER: address = @0x51;
 /// create-and-publish-atomic shape (a fresh `Recording` is `key`-only with
 /// no `drop`; `publish` is its sole by-value consumer). The admin cap is
 /// address-owned and never shared, so it is carried as a plain local value
-/// across `next_tx` calls, following the `composition_routed_stake` /
-/// `recording_advisory` precedent; only the `Recording` itself is genuinely
+/// across `next_tx` calls, following the `recording_advisory` precedent; only
+/// the `Recording` itself is genuinely
 /// shared and re-accessed via `take_shared`.
 fun publish_shared_recording(
     ts: &mut Scenario,

@@ -54,16 +54,19 @@ const MAX_DESCRIPTION_LENGTH: u64 = 8192;
 // === Errors ===
 
 // Validation errors
-#[error]
-const EEmptyDescription: vector<u8> = b"Description must not be empty; attach nothing instead";
+
+/// Description must not be empty; attach nothing instead
+const EEmptyDescription: u64 = 0;
 
 // Constraint errors
-#[error]
-const EMaxDescriptionLengthExceeded: vector<u8> = b"Description exceeds the maximum length";
+
+/// Description exceeds the maximum length
+const EMaxDescriptionLengthExceeded: u64 = 1;
 
 // Reference errors
-#[error]
-const ENoDescription: vector<u8> = b"No description is attached to this release";
+
+/// No description is attached to this release
+const ENoDescription: u64 = 2;
 
 // === Structs ===
 

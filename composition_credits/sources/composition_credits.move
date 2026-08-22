@@ -95,8 +95,8 @@ public fun add_credit<CompositionShare>(
     // guarantees at least one role for every value that can exist.
     assert!(credit.roles().length() <= MAX_ROLES_PER_CREDIT, EExceedsMaxRoles);
 
-    let composition_id = self.id();
-    let party_id = party.id();
+    let composition_id = object::id(self);
+    let party_id = object::id(party);
     let cc = borrow_mut_or_init(self.uid_mut(cap));
     assert!(cc.credits.length() < MAX_CREDITS, EMaxCreditsExceeded);
     assert!(!cc.credits.contains(&party_id), EPartyAlreadyCredited);
@@ -111,7 +111,7 @@ public fun remove_credit<CompositionShare>(
     cap: &CompositionAdminCap<CompositionShare>,
     party_id: ID,
 ) {
-    let composition_id = self.id();
+    let composition_id = object::id(self);
     let cc = borrow_mut(self.uid_mut(cap));
     assert!(cc.credits.contains(&party_id), EPartyNotCredited);
     let (_, credit) = cc.credits.remove(&party_id);

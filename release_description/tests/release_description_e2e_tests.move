@@ -23,7 +23,7 @@ const STRANGER: address = @0x51;
 
 // Mirrors `release::EUnauthorized` (release.move:159). A `Release` binds its
 // cap at runtime — `uid_mut` calls `authorize`, which asserts
-// `self.id() == cap.release_id` — so a foreign cap is testable here.
+// `object::id(self) == cap.release_id` — so a foreign cap is testable here.
 const EUnauthorized: u64 = 0;
 
 /// Publishes a minimal, titled, single-track release and returns its admin
@@ -44,7 +44,7 @@ fun publish_titled_release(scenario: &mut Scenario, title: vector<u8>): (Release
         ],
         ctx,
     );
-    let rel_id = rel.id();
+    let rel_id = object::id(&rel);
     let clock = sui::clock::create_for_testing(ctx);
     rel.publish(&cap, &clock);
     clock.destroy_for_testing();

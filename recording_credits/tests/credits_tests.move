@@ -120,8 +120,8 @@ fun primary_and_featured_round_trip() {
     credits::add_primary_artist(&mut rec, &cap, &p1);
     credits::add_featured_artist(&mut rec, &cap, &p2);
 
-    assert!(credits::is_primary_artist(&rec, p1.id()));
-    assert!(credits::is_featured_artist(&rec, p2.id()));
+    assert!(credits::is_primary_artist(&rec, object::id(&p1)));
+    assert!(credits::is_featured_artist(&rec, object::id(&p2)));
     assert_eq!(credits::primary_artist_ids(&rec).length(), 1);
     assert_eq!(credits::featured_artist_ids(&rec).length(), 1);
 
@@ -159,7 +159,7 @@ fun remove_credit_cascades_to_primary_and_featured() {
     let mut ts = test_scenario::begin(ARTIST);
     let (mut rec, cap) = mk_recording(ts.ctx());
     let (p, _pc) = mk_party(b"Alice", ts.ctx());
-    let pid = p.id();
+    let pid = object::id(&p);
     credits::add_credit(&mut rec, &cap, &p,
         credit::new(b"Alice".to_string(), vector[rpr::new_vocalist_role(option::none())]));
     credits::add_primary_artist(&mut rec, &cap, &p);
@@ -179,7 +179,7 @@ fun add_credit_emits_the_full_credit() {
     let (mut rec, cap) = mk_recording(ts.ctx());
     let rec_id = object::id(&rec);
     let (p, pc) = mk_party(b"Alice", ts.ctx());
-    let pid = p.id();
+    let pid = object::id(&p);
 
     credits::add_credit(
         &mut rec,
@@ -205,7 +205,7 @@ fun remove_credit_emits_the_removed_credit() {
     let (mut rec, cap) = mk_recording(ts.ctx());
     let rec_id = object::id(&rec);
     let (p, pc) = mk_party(b"Alice", ts.ctx());
-    let pid = p.id();
+    let pid = object::id(&p);
     credits::add_credit(
         &mut rec,
         &cap,
@@ -244,8 +244,8 @@ fun remove_credit_cascade_emits_artist_removals() {
     credits::add_primary_artist(&mut rec, &cap, &p1);
     credits::add_featured_artist(&mut rec, &cap, &p2);
 
-    credits::remove_credit(&mut rec, &cap, p1.id());
-    credits::remove_credit(&mut rec, &cap, p2.id());
+    credits::remove_credit(&mut rec, &cap, object::id(&p1));
+    credits::remove_credit(&mut rec, &cap, object::id(&p2));
 
     // Removing a credited primary/featured artist ends that designation too;
     // an indexer must hear about it without diffing object state.
@@ -253,13 +253,13 @@ fun remove_credit_cascade_emits_artist_removals() {
     assert_eq!(primaries.length(), 1);
     let (rid, pid) = credits::primary_artist_removed_event_fields(&primaries[0]);
     assert_eq!(rid, rec_id);
-    assert_eq!(pid, p1.id());
+    assert_eq!(pid, object::id(&p1));
 
     let featured = event::events_by_type<credits::FeaturedArtistRemovedEvent>();
     assert_eq!(featured.length(), 1);
     let (rid, pid) = credits::featured_artist_removed_event_fields(&featured[0]);
     assert_eq!(rid, rec_id);
-    assert_eq!(pid, p2.id());
+    assert_eq!(pid, object::id(&p2));
 
     destroy(rec); destroy(cap); destroy(p1); destroy(p1c); destroy(p2); destroy(p2c);
     ts.end();
@@ -271,7 +271,7 @@ fun primary_artist_changes_emit_events() {
     let (mut rec, cap) = mk_recording(ts.ctx());
     let rec_id = object::id(&rec);
     let (p, pc) = mk_party(b"Alice", ts.ctx());
-    let pid = p.id();
+    let pid = object::id(&p);
     credits::add_credit(&mut rec, &cap, &p,
         credit::new(b"Alice".to_string(), vector[rpr::new_vocalist_role(option::none())]));
 
@@ -401,8 +401,8 @@ fun is_primary_and_featured_artist_are_false_before_any_credit() {
     // `false` rather than aborting — absence must read as "not designated",
     // not as an error.
     assert!(!credits::has_credits(&rec));
-    assert!(!credits::is_primary_artist(&rec, p.id()));
-    assert!(!credits::is_featured_artist(&rec, p.id()));
+    assert!(!credits::is_primary_artist(&rec, object::id(&p)));
+    assert!(!credits::is_featured_artist(&rec, object::id(&p)));
 
     destroy(rec); destroy(cap); destroy(p); destroy(pc);
     ts.end();
@@ -463,7 +463,7 @@ fun remove_primary_artist_rejects_when_not_primary() {
     let (p, _pc) = mk_party(b"Alice", ts.ctx());
     credits::add_credit(&mut rec, &cap, &p,
         credit::new(b"Alice".to_string(), vector[rpr::new_vocalist_role(option::none())]));
-    credits::remove_primary_artist(&mut rec, &cap, p.id()); // never was primary
+    credits::remove_primary_artist(&mut rec, &cap, object::id(&p)); // never was primary
     abort
 }
 
@@ -474,7 +474,7 @@ fun remove_featured_artist_rejects_when_not_featured() {
     let (p, _pc) = mk_party(b"Alice", ts.ctx());
     credits::add_credit(&mut rec, &cap, &p,
         credit::new(b"Alice".to_string(), vector[rpr::new_vocalist_role(option::none())]));
-    credits::remove_featured_artist(&mut rec, &cap, p.id()); // never was featured
+    credits::remove_featured_artist(&mut rec, &cap, object::id(&p)); // never was featured
     abort
 }
 
@@ -483,7 +483,7 @@ fun remove_credit_rejects_double_removal() {
     let mut ts = test_scenario::begin(ARTIST);
     let (mut rec, cap) = mk_recording(ts.ctx());
     let (p, _pc) = mk_party(b"Alice", ts.ctx());
-    let pid = p.id();
+    let pid = object::id(&p);
     credits::add_credit(&mut rec, &cap, &p,
         credit::new(b"Alice".to_string(), vector[rpr::new_vocalist_role(option::none())]));
     credits::remove_credit(&mut rec, &cap, pid);
@@ -505,9 +505,9 @@ fun credits_are_scoped_to_their_own_recording() {
     credits::add_primary_artist(&mut rec_a, &cap_a, &p);
 
     assert!(credits::has_credits(&rec_a));
-    assert!(credits::is_primary_artist(&rec_a, p.id()));
+    assert!(credits::is_primary_artist(&rec_a, object::id(&p)));
     assert!(!credits::has_credits(&rec_b));
-    assert!(!credits::is_primary_artist(&rec_b, p.id()));
+    assert!(!credits::is_primary_artist(&rec_b, object::id(&p)));
 
     destroy(rec_a); destroy(cap_a); destroy(rec_b); destroy(cap_b);
     destroy(p); destroy(pc);
@@ -520,7 +520,7 @@ fun featured_artist_changes_emit_events() {
     let (mut rec, cap) = mk_recording(ts.ctx());
     let rec_id = object::id(&rec);
     let (p, pc) = mk_party(b"Alice", ts.ctx());
-    let pid = p.id();
+    let pid = object::id(&p);
     credits::add_credit(&mut rec, &cap, &p,
         credit::new(b"Alice".to_string(), vector[rpr::new_vocalist_role(option::none())]));
 

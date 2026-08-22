@@ -71,7 +71,7 @@ public struct TrackCoverUnsetEvent has copy, drop {
 
 /// Sets (or replaces) the album-level cover.
 public fun set_cover(self: &mut Release, cap: &ReleaseAdminCap, art: CoverArt) {
-    let release_id = self.id();
+    let release_id = object::id(self);
     borrow_mut_or_init(self, cap).cover.swap_or_fill(art);
     emit(CoverSetEvent { release_id, art });
 }
@@ -79,7 +79,7 @@ public fun set_cover(self: &mut Release, cap: &ReleaseAdminCap, art: CoverArt) {
 /// Removes the album-level cover. Per-track overrides are untouched. Aborts
 /// with `ENoCoverArt` if no cover art record is attached.
 public fun unset_cover(self: &mut Release, cap: &ReleaseAdminCap) {
-    let release_id = self.id();
+    let release_id = object::id(self);
     let uid = self.uid_mut(cap); // cap gate first, on every path
     assert!(df::exists(uid, ExtensionKey()), ENoCoverArt);
     df::borrow_mut<ExtensionKey, ReleaseCoverArt>(uid, ExtensionKey()).cover = option::none();
@@ -95,7 +95,7 @@ public fun set_track_cover(
     art: CoverArt,
 ) {
     assert!(track_index < self.tracks().length(), ETrackIndexOutOfBounds);
-    let release_id = self.id();
+    let release_id = object::id(self);
     borrow_mut_or_init(self, cap).track_covers.borrow_mut(track_index).swap_or_fill(art);
     emit(TrackCoverSetEvent { release_id, track_index, art });
 }
@@ -105,7 +105,7 @@ public fun set_track_cover(
 /// the index is out of range for the release.
 public fun unset_track_cover(self: &mut Release, cap: &ReleaseAdminCap, track_index: u64) {
     let total_tracks = self.tracks().length();
-    let release_id = self.id();
+    let release_id = object::id(self);
     let uid = self.uid_mut(cap); // cap gate first, on every path
     assert!(df::exists(uid, ExtensionKey()), ENoCoverArt);
     assert!(track_index < total_tracks, ETrackIndexOutOfBounds);

@@ -96,8 +96,8 @@ public fun add_credit(
 ) {
     assert!(credit.roles().length() == CREDIT_ROLE_COUNT, EInvalidCreditRoleCount);
 
-    let release_id = self.id();
-    let party_id = party.id();
+    let release_id = object::id(self);
+    let party_id = object::id(party);
     let rc = borrow_mut_or_init(self.uid_mut(cap));
     assert!(rc.credits.length() < MAX_CREDITS, EMaxCreditsExceeded);
     assert!(!rc.credits.contains(&party_id), EPartyAlreadyCredited);
@@ -108,7 +108,7 @@ public fun add_credit(
 
 /// Removes a party's credit. Requires the release's admin capability.
 public fun remove_credit(self: &mut Release, cap: &ReleaseAdminCap, party_id: ID) {
-    let release_id = self.id();
+    let release_id = object::id(self);
     let rc = borrow_mut(self.uid_mut(cap));
     assert!(rc.credits.contains(&party_id), EPartyNotCredited);
     let (_, credit) = rc.credits.remove(&party_id);

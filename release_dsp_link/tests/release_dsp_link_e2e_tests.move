@@ -44,7 +44,7 @@ fun published_shared_release_dsp_links_full_lifecycle() {
         track::new_for_testing(comp_id, rec_1, placeholder, 4000u16),
     ];
     let (rel, rel_cap) = release::new_for_testing(b"EP".to_string(), tracks, ts.ctx());
-    let release_id = rel.id();
+    let release_id = object::id(&rel);
     let clock = sui::clock::create_for_testing(ts.ctx());
     rel.publish(&rel_cap, &clock); // shares the release
     clock.destroy_for_testing();

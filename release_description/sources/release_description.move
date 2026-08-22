@@ -99,7 +99,7 @@ public fun set_description(self: &mut Release, cap: &ReleaseAdminCap, descriptio
     assert!(!bytes.is_empty(), EEmptyDescription);
     assert!(bytes.length() <= MAX_DESCRIPTION_LENGTH, EMaxDescriptionLengthExceeded);
 
-    let release_id = self.id();
+    let release_id = object::id(self);
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         *df::borrow_mut(uid, ExtensionKey()) = description;
@@ -112,7 +112,7 @@ public fun set_description(self: &mut Release, cap: &ReleaseAdminCap, descriptio
 /// Removes the description, if any. Idempotent. Leaves the release having said
 /// nothing about itself, which is where every release starts.
 public fun clear_description(self: &mut Release, cap: &ReleaseAdminCap) {
-    let release_id = self.id();
+    let release_id = object::id(self);
     // Cap-gate before the existence check, so a wrong cap aborts even when there
     // is nothing attached to remove.
     let uid = self.uid_mut(cap);

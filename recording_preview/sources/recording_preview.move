@@ -52,7 +52,7 @@ public fun set_preview<RecordingShare, CompositionShare>(
     preview: WalrusData,
 ) {
     preview.assert_is_blob();
-    let recording_id = self.id();
+    let recording_id = object::id(self);
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         *df::borrow_mut(uid, ExtensionKey()) = preview;
@@ -67,7 +67,7 @@ public fun unset_preview<RecordingShare, CompositionShare>(
     self: &mut Recording<RecordingShare, CompositionShare>,
     cap: &RecordingAdminCap<RecordingShare>,
 ) {
-    let recording_id = self.id();
+    let recording_id = object::id(self);
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         let _: WalrusData = df::remove(uid, ExtensionKey());

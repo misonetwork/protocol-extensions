@@ -54,7 +54,7 @@ fun full_lifecycle_on_published_and_shared_recording() {
     // --- Tx 2 (ADMIN): attach the master reference to the shared recording ---
     ts.next_tx(ADMIN);
     let mut rec = ts.take_shared<Recording<REC, COMP>>();
-    let rec_id = rec.id();
+    let rec_id = object::id(&rec);
     assert!(!mref::has_master_reference(&rec));
 
     mref::set_master_reference(&mut rec, &cap, walrus_data::new_blob(111));

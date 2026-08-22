@@ -62,7 +62,7 @@ fun kind_lifecycle_against_a_published_shared_release() {
     // --- Tx 2 (ADMIN): set the kind on the now-shared release ---
     ts.next_tx(ADMIN);
     let mut rel = ts.take_shared<Release>();
-    let rel_id = rel.id();
+    let rel_id = object::id(&rel);
     rk::set_kind(&mut rel, &cap, b"Album".to_string());
     assert!(rk::has_kind(&rel));
     assert_eq!(rk::kind(&rel), b"Album".to_string());

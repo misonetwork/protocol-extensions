@@ -32,7 +32,7 @@ fun credits_lifecycle_against_a_published_shared_release() {
 
     // === Tx 1 (LABEL): create and publish the release — shares it ===
     let (rel, rel_cap) = release::new_for_testing(b"Album".to_string(), vector[], ts.ctx());
-    let rel_id = rel.id();
+    let rel_id = object::id(&rel);
     let clock = sui::clock::create_for_testing(ts.ctx());
     rel.publish(&rel_cap, &clock);
     clock.destroy_for_testing();
@@ -42,7 +42,7 @@ fun credits_lifecycle_against_a_published_shared_release() {
     let clock = sui::clock::create_for_testing(ts.ctx());
     let (artist_party, artist_cap) =
         party::new(party::new_individual_kind(), b"Alice".to_string(), &clock, ts.ctx());
-    let artist_id = artist_party.id();
+    let artist_id = object::id(&artist_party);
     artist_party.share(&artist_cap);
     clock.destroy_for_testing();
 
@@ -51,7 +51,7 @@ fun credits_lifecycle_against_a_published_shared_release() {
     let clock = sui::clock::create_for_testing(ts.ctx());
     let (feat_party, feat_cap) =
         party::new(party::new_individual_kind(), b"Bob".to_string(), &clock, ts.ctx());
-    let feat_id = feat_party.id();
+    let feat_id = object::id(&feat_party);
     feat_party.share(&feat_cap);
     clock.destroy_for_testing();
 

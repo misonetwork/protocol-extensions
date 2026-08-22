@@ -137,8 +137,8 @@ public fun add_credit<RecordingShare, CompositionShare>(
     // guarantees at least one role for every value that can exist.
     assert!(credit.roles().length() <= MAX_ROLES_PER_CREDIT, EExceedsMaxRoles);
 
-    let recording_id = self.id();
-    let party_id = party.id();
+    let recording_id = object::id(self);
+    let party_id = object::id(party);
     let rc = borrow_mut_or_init(self.uid_mut(cap));
     assert!(rc.credits.length() < MAX_CREDITS, EMaxCreditsExceeded);
     assert!(!rc.credits.contains(&party_id), EPartyAlreadyCredited);
@@ -155,7 +155,7 @@ public fun remove_credit<RecordingShare, CompositionShare>(
     cap: &RecordingAdminCap<RecordingShare>,
     party_id: ID,
 ) {
-    let recording_id = self.id();
+    let recording_id = object::id(self);
     let rc = borrow_mut(self.uid_mut(cap));
     assert!(rc.credits.contains(&party_id), EPartyNotCredited);
     let (_, credit) = rc.credits.remove(&party_id);
@@ -181,8 +181,8 @@ public fun add_primary_artist<RecordingShare, CompositionShare>(
     cap: &RecordingAdminCap<RecordingShare>,
     party: &Party,
 ) {
-    let recording_id = self.id();
-    let party_id = party.id();
+    let recording_id = object::id(self);
+    let party_id = object::id(party);
     let rc = borrow_mut(self.uid_mut(cap));
     assert!(rc.primary_artist_ids.length() < MAX_PRIMARY_ARTISTS, EMaxPrimaryArtistsExceeded);
     assert!(rc.credits.contains(&party_id), EPartyNotCredited);
@@ -199,7 +199,7 @@ public fun remove_primary_artist<RecordingShare, CompositionShare>(
     cap: &RecordingAdminCap<RecordingShare>,
     party_id: ID,
 ) {
-    let recording_id = self.id();
+    let recording_id = object::id(self);
     let rc = borrow_mut(self.uid_mut(cap));
     assert!(rc.primary_artist_ids.contains(&party_id), EPartyNotCredited);
     rc.primary_artist_ids.remove(&party_id);
@@ -214,8 +214,8 @@ public fun add_featured_artist<RecordingShare, CompositionShare>(
     cap: &RecordingAdminCap<RecordingShare>,
     party: &Party,
 ) {
-    let recording_id = self.id();
-    let party_id = party.id();
+    let recording_id = object::id(self);
+    let party_id = object::id(party);
     let rc = borrow_mut(self.uid_mut(cap));
     assert!(rc.featured_artist_ids.length() < MAX_FEATURED_ARTISTS, EMaxFeaturedArtistsExceeded);
     assert!(rc.credits.contains(&party_id), EPartyNotCredited);
@@ -232,7 +232,7 @@ public fun remove_featured_artist<RecordingShare, CompositionShare>(
     cap: &RecordingAdminCap<RecordingShare>,
     party_id: ID,
 ) {
-    let recording_id = self.id();
+    let recording_id = object::id(self);
     let rc = borrow_mut(self.uid_mut(cap));
     assert!(rc.featured_artist_ids.contains(&party_id), EPartyNotCredited);
     rc.featured_artist_ids.remove(&party_id);

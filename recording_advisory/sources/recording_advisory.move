@@ -83,7 +83,7 @@ public fun set_rating<RecordingShare, CompositionShare>(
     cap: &RecordingAdminCap<RecordingShare>,
     rating: ExplicitRating,
 ) {
-    let recording_id = self.id();
+    let recording_id = object::id(self);
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         *df::borrow_mut(uid, ExtensionKey()) = rating;
@@ -99,7 +99,7 @@ public fun unset_rating<RecordingShare, CompositionShare>(
     self: &mut Recording<RecordingShare, CompositionShare>,
     cap: &RecordingAdminCap<RecordingShare>,
 ) {
-    let recording_id = self.id();
+    let recording_id = object::id(self);
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         let _: ExplicitRating = df::remove(uid, ExtensionKey());

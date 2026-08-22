@@ -86,7 +86,7 @@ fun set_primary_genre_and_tracks_inherit() {
     scenario.next_tx(CURATOR);
     let genre = scenario.take_immutable_by_id<Genre>(genre_id);
     let (mut rel, cap) = mk_release(scenario.ctx());
-    let release_id = rel.id();
+    let release_id = object::id(&rel);
 
     assert!(!rg::has_genre(&rel));
     rg::set_primary_genre(&mut rel, &cap, &genre);
@@ -155,7 +155,7 @@ fun add_and_remove_secondary_genres() {
     let genre2 = scenario.take_immutable_by_id<Genre>(g2);
     let genre3 = scenario.take_immutable_by_id<Genre>(g3);
     let (mut rel, cap) = mk_release(scenario.ctx());
-    let release_id = rel.id();
+    let release_id = object::id(&rel);
 
     rg::set_primary_genre(&mut rel, &cap, &genre1);
     rg::add_secondary_genre(&mut rel, &cap, &genre2);
@@ -416,7 +416,7 @@ fun track_override_resolves_over_album() {
     let genre1 = scenario.take_immutable_by_id<Genre>(g1);
     let genre2 = scenario.take_immutable_by_id<Genre>(g2);
     let (mut rel, cap) = mk_release(scenario.ctx());
-    let release_id = rel.id();
+    let release_id = object::id(&rel);
 
     rg::set_primary_genre(&mut rel, &cap, &genre1);
     // Override track 1 to g2; track 0 still inherits the album primary g1.

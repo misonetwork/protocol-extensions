@@ -66,7 +66,7 @@ fun publish_and_share_release(scenario: &mut Scenario): (ReleaseAdminCap, ID) {
     // real release id it creates, so the placeholder above never has to be
     // predicted correctly.
     let (rel, cap) = release::new_for_testing(b"Album".to_string(), tracks, ctx);
-    let release_id = rel.id();
+    let release_id = object::id(&rel);
     let the_clock = clock::create_for_testing(ctx);
     rel.publish(&cap, &the_clock); // verifies track assignment, shares
     the_clock.destroy_for_testing();
@@ -93,7 +93,7 @@ fun genre_lifecycle_on_published_shared_release() {
     // --- Tx 3 (LABEL): operate on the now-shared release via take_shared ---
     scenario.next_tx(LABEL);
     let mut rel = scenario.take_shared<Release>();
-    assert_eq!(rel.id(), release_id);
+    assert_eq!(object::id(&rel), release_id);
     assert!(rel.is_published_state());
     let hiphop = scenario.take_immutable_by_id<Genre>(hiphop_id);
     let electronic = scenario.take_immutable_by_id<Genre>(electronic_id);

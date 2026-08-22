@@ -23,7 +23,7 @@ use sui::event;
 
 // Mirrors `release::EUnauthorized` (release.move:110). Unlike `Recording`, a
 // `Release` binds its cap at runtime — `uid_mut` calls `authorize`, which asserts
-// `self.id() == cap.release_id` — so a foreign cap is testable here.
+// `object::id(self) == cap.release_id` — so a foreign cap is testable here.
 const EUnauthorized: u64 = 0;
 
 /// A one-track release. Nothing here reads the tracklist; a kind is a claim about

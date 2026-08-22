@@ -386,7 +386,7 @@ public struct TrackLinksClearedEvent has copy, drop {
 /// Sets (or replaces) a DSP's album-level link. The platform is derived from
 /// `link` itself. Per-track links are untouched.
 public fun set_release_link(self: &mut Release, cap: &ReleaseAdminCap, link: DspLinkData) {
-    let release_id = self.id();
+    let release_id = object::id(self);
     let platform = link.platform();
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ReleaseLinkKey(platform))) {
@@ -400,7 +400,7 @@ public fun set_release_link(self: &mut Release, cap: &ReleaseAdminCap, link: Dsp
 /// Clears a DSP's album-level link. No-op if unset.
 public fun clear_release_link(self: &mut Release, cap: &ReleaseAdminCap, platform: u8) {
     if (df::exists(self.uid(), ReleaseLinkKey(platform))) {
-        let release_id = self.id();
+        let release_id = object::id(self);
         let _: DspLinkData = df::remove(self.uid_mut(cap), ReleaseLinkKey(platform));
         emit(ReleaseLinkClearedEvent { release_id, platform });
     }
@@ -418,7 +418,7 @@ public fun set_track_link(
     link: DspLinkData,
 ) {
     assert!(track_index < self.tracks().length(), ETrackIndexOutOfBounds);
-    let release_id = self.id();
+    let release_id = object::id(self);
     let platform = link.platform();
     *track_links_mut_or_init(self, cap, platform).borrow_mut(track_index) = option::some(link);
     emit(TrackLinkSetEvent { release_id, platform, track_index, link: option::some(link) });
@@ -435,7 +435,7 @@ public fun clear_track_link(
 ) {
     if (df::exists(self.uid(), TrackLinksKey(platform))) {
         assert!(track_index < self.tracks().length(), ETrackIndexOutOfBounds);
-        let release_id = self.id();
+        let release_id = object::id(self);
         *borrow_track_links_mut(self.uid_mut(cap), platform).borrow_mut(track_index) =
             option::none();
         emit(TrackLinkSetEvent { release_id, platform, track_index, link: option::none() });
@@ -445,7 +445,7 @@ public fun clear_track_link(
 /// Removes a DSP's entire per-track array. No-op if absent.
 public fun clear_track_links(self: &mut Release, cap: &ReleaseAdminCap, platform: u8) {
     if (df::exists(self.uid(), TrackLinksKey(platform))) {
-        let release_id = self.id();
+        let release_id = object::id(self);
         let _: PerTrack<Option<DspLinkData>> = df::remove(
             self.uid_mut(cap),
             TrackLinksKey(platform),

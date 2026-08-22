@@ -75,7 +75,7 @@ fun cover_art_lifecycle_against_published_shared_release() {
     // === Tx 2 (ADMIN): attach the album cover and a track override ===
     ts.next_tx(ADMIN);
     let mut rel = ts.take_shared<Release>();
-    let rel_id = rel.id();
+    let rel_id = object::id(&rel);
     assert!(!release_cover_art::has_cover_art(&rel));
 
     let album_art = cover::new_for_testing();

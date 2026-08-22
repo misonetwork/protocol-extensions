@@ -77,7 +77,7 @@ public fun set_languages<RecordingShare, CompositionShare>(
     languages: vector<LanguageCode>,
 ) {
     validate(&languages);
-    let recording_id = self.id();
+    let recording_id = object::id(self);
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         *df::borrow_mut(uid, ExtensionKey()) = languages;
@@ -101,7 +101,7 @@ public fun unset_languages<RecordingShare, CompositionShare>(
     self: &mut Recording<RecordingShare, CompositionShare>,
     cap: &RecordingAdminCap<RecordingShare>,
 ) {
-    let recording_id = self.id();
+    let recording_id = object::id(self);
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         let _: vector<LanguageCode> = df::remove(uid, ExtensionKey());

@@ -41,7 +41,7 @@ fun admin_rates_a_published_shared_recording_and_a_stranger_reads_it() {
         object::id_from_address(@0xC0FFEE),
         ts.ctx(),
     );
-    let rec_id = rec.id();
+    let rec_id = object::id(&rec);
     let clock = sui::clock::create_for_testing(ts.ctx());
     rec.publish(&rec_cap, &clock); // shares the recording
     clock.destroy_for_testing();

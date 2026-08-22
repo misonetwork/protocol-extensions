@@ -4,7 +4,7 @@
 /// Unit coverage: constructor validation (every error const), bounds, view
 /// fallback semantics, platform mapping, and event payloads. `ReleaseAdminCap`
 /// authorization is bound to the release's id at runtime (`uid_mut` calls
-/// `authorize`, which checks `self.id() == cap.release_id`) rather than to
+/// `authorize`, which checks `object::id(self) == cap.release_id`) rather than to
 /// any sender/address, so single-transaction `tx_context::dummy()` tests
 /// exercise the real authorization logic just as well as a multi-actor
 /// scenario would — scenario mechanics (distinct senders, `next_tx`) add
@@ -28,7 +28,7 @@ const A: address = @0xA1;
 
 // Mirrors `release::EUnauthorized` (release.move:110). Unlike the type-bound
 // recording caps, a `Release` binds its cap at runtime — `uid_mut` calls
-// `authorize`, which asserts `self.id() == cap.release_id` — so a foreign cap
+// `authorize`, which asserts `object::id(self) == cap.release_id` — so a foreign cap
 // is testable here.
 const EUnauthorized: u64 = 0;
 

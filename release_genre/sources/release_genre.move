@@ -111,8 +111,8 @@ public fun set_primary_genre(
     cap: &ReleaseAdminCap,
     genre: &Genre,
 ) {
-    let release_id = self.id();
-    let genre_id = genre.id();
+    let release_id = object::id(self);
+    let genre_id = object::id(genre);
 
     if (df::exists(self.uid(), ExtensionKey())) {
         let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
@@ -138,8 +138,8 @@ public fun set_primary_genre(
 /// Adds an album secondary genre. Requires the album primary first. Rejects a
 /// secondary equal to the primary, duplicates, and counts at/above the maximum.
 public fun add_secondary_genre(self: &mut Release, cap: &ReleaseAdminCap, genre: &Genre) {
-    let release_id = self.id();
-    let genre_id = genre.id();
+    let release_id = object::id(self);
+    let genre_id = object::id(genre);
 
     assert!(df::exists(self.uid(), ExtensionKey()), ENoPrimaryGenre);
     let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
@@ -153,8 +153,8 @@ public fun add_secondary_genre(self: &mut Release, cap: &ReleaseAdminCap, genre:
 
 /// Removes an album secondary genre.
 public fun remove_secondary_genre(self: &mut Release, cap: &ReleaseAdminCap, genre: &Genre) {
-    let release_id = self.id();
-    let genre_id = genre.id();
+    let release_id = object::id(self);
+    let genre_id = object::id(genre);
 
     assert!(df::exists(self.uid(), ExtensionKey()), ENoPrimaryGenre);
     let assignment: &mut ReleaseGenre = df::borrow_mut(self.uid_mut(cap), ExtensionKey());
@@ -175,8 +175,8 @@ public fun set_track_primary_genre(
     track_index: u64,
     genre: &Genre,
 ) {
-    let release_id = self.id();
-    let genre_id = genre.id();
+    let release_id = object::id(self);
+    let genre_id = object::id(genre);
 
     assert!(df::exists(self.uid(), ExtensionKey()), ENoPrimaryGenre);
     assert!(track_index < self.tracks().length(), ETrackIndexOutOfBounds);
@@ -189,7 +189,7 @@ public fun set_track_primary_genre(
 /// Removes a track's primary-genre override — the track falls back to the album
 /// primary. Aborts if the index is out of range.
 public fun unset_track_primary_genre(self: &mut Release, cap: &ReleaseAdminCap, track_index: u64) {
-    let release_id = self.id();
+    let release_id = object::id(self);
 
     assert!(df::exists(self.uid(), ExtensionKey()), ENoPrimaryGenre);
     assert!(track_index < self.tracks().length(), ETrackIndexOutOfBounds);

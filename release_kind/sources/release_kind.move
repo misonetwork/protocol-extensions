@@ -78,7 +78,7 @@ public fun set_kind(self: &mut Release, cap: &ReleaseAdminCap, kind: String) {
     assert!(!bytes.is_empty(), EEmptyKind);
     assert!(bytes.length() <= MAX_KIND_LENGTH, EKindTooLong);
 
-    let release_id = self.id();
+    let release_id = object::id(self);
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         *df::borrow_mut(uid, ExtensionKey()) = kind;
@@ -91,7 +91,7 @@ public fun set_kind(self: &mut Release, cap: &ReleaseAdminCap, kind: String) {
 /// Removes the kind, if any. Idempotent. Leaves the release having said nothing
 /// about what it is, which is a different state from calling itself anything.
 public fun unset_kind(self: &mut Release, cap: &ReleaseAdminCap) {
-    let release_id = self.id();
+    let release_id = object::id(self);
     let uid = self.uid_mut(cap);
     if (df::exists(uid, ExtensionKey())) {
         let _: String = df::remove(uid, ExtensionKey());

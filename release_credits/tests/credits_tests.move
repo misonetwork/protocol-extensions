@@ -143,7 +143,7 @@ fun remove_credit_aborts_for_an_uncredited_party() {
         &p1,
         credit::new(b"Alice".to_string(), vector[rpr::new_primary_role()]),
     );
-    credits::remove_credit(&mut rel, &cap, p2.id());
+    credits::remove_credit(&mut rel, &cap, object::id(&p2));
     abort
 }
 
@@ -152,7 +152,7 @@ fun remove_credit_aborts_when_no_credits_record_exists() {
     let mut ts = test_scenario::begin(ARTIST);
     let (mut rel, cap) = mk_release(ts.ctx());
     let (p, _pc) = mk_party(b"Alice", ts.ctx());
-    credits::remove_credit(&mut rel, &cap, p.id());
+    credits::remove_credit(&mut rel, &cap, object::id(&p));
     abort
 }
 
@@ -161,7 +161,7 @@ fun remove_credit_round_trip() {
     let mut ts = test_scenario::begin(ARTIST);
     let (mut rel, cap) = mk_release(ts.ctx());
     let (p, _pc) = mk_party(b"Alice", ts.ctx());
-    let pid = p.id();
+    let pid = object::id(&p);
     credits::add_credit(
         &mut rel,
         &cap,
@@ -203,12 +203,12 @@ fun add_credit_emits_the_full_record() {
 
     let (release_id, party_id, credit) = credits::added_event_fields(&events[0]);
     assert_eq!(release_id, rel_id);
-    assert_eq!(party_id, p1.id());
+    assert_eq!(party_id, object::id(&p1));
     assert_eq!(credit, credit::new(b"Alice".to_string(), vector[rpr::new_primary_role()]));
 
     let (release_id, party_id, credit) = credits::added_event_fields(&events[1]);
     assert_eq!(release_id, rel_id);
-    assert_eq!(party_id, p2.id());
+    assert_eq!(party_id, object::id(&p2));
     assert_eq!(credit, credit::new(b"Bob".to_string(), vector[rpr::new_featured_role()]));
 
     destroy(rel); destroy(cap); destroy(p1); destroy(p1c); destroy(p2); destroy(p2c);
@@ -221,7 +221,7 @@ fun remove_credit_emits_the_removed_record() {
     let (mut rel, cap) = mk_release(ts.ctx());
     let rel_id = object::id(&rel);
     let (p, pc) = mk_party(b"Alice", ts.ctx());
-    let pid = p.id();
+    let pid = object::id(&p);
 
     credits::add_credit(
         &mut rel,

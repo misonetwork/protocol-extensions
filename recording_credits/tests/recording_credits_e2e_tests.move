@@ -72,8 +72,8 @@ fun full_credit_lifecycle_on_published_shared_recording() {
     let (guest, guest_cap) =
         party::new(party::new_individual_kind(), b"Guest".to_string(), &clock, ts.ctx());
     clock.destroy_for_testing();
-    let lead_id = lead.id();
-    let guest_id = guest.id();
+    let lead_id = object::id(&lead);
+    let guest_id = object::id(&guest);
 
     let lead_credit =
         credit::new(b"Lead".to_string(), vector[rpr::new_vocalist_role(option::some(rpr::new_lead_role_level()))]);
@@ -163,7 +163,7 @@ fun remove_credit_then_add_primary_fails_on_published_recording() {
     let clock = sui::clock::create_for_testing(ts.ctx());
     let (p, _pc) = party::new(party::new_individual_kind(), b"Alice".to_string(), &clock, ts.ctx());
     clock.destroy_for_testing();
-    let pid = p.id();
+    let pid = object::id(&p);
     credits::add_credit(&mut rec, &cap, &p,
         credit::new(b"Alice".to_string(), vector[rpr::new_vocalist_role(option::none())]));
     credits::add_primary_artist(&mut rec, &cap, &p);

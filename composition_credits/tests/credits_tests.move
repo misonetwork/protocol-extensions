@@ -105,7 +105,7 @@ fun remove_credit_round_trip() {
     let mut ts = test_scenario::begin(ARTIST);
     let (mut comp, cap) = mk_composition(ts.ctx());
     let (p, _pc) = mk_party(b"Alice", ts.ctx());
-    let pid = p.id();
+    let pid = object::id(&p);
     credits::add_credit(
         &mut comp,
         &cap,
@@ -134,7 +134,7 @@ fun add_credit_emits_full_record() {
     let (mut comp, cap) = mk_composition(ctx);
     let (p, pc) = mk_party(b"Alice", ctx);
     let composition_id = object::id(&comp);
-    let party_id = p.id();
+    let party_id = object::id(&p);
     let credit = credit::new(b"Alice".to_string(), vector[cpr::new_composer_role()]);
 
     credits::add_credit(&mut comp, &cap, &p, credit);
@@ -156,7 +156,7 @@ fun remove_credit_emits_full_record() {
     let (mut comp, cap) = mk_composition(ctx);
     let (p, pc) = mk_party(b"Alice", ctx);
     let composition_id = object::id(&comp);
-    let party_id = p.id();
+    let party_id = object::id(&p);
     let credit = credit::new(b"Alice".to_string(), vector[cpr::new_composer_role()]);
     credits::add_credit(&mut comp, &cap, &p, credit);
 
